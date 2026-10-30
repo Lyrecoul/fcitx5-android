@@ -1,0 +1,10 @@
+{
+    "uniqueId": "rebron1900/fcitx5-enhanced",
+    "artifactVersion": "acce4a8ab48cf231afe5c2df85a7ea3625424bf2",
+    "description": "Built-in glass keyboard effects and original glass border renderer",
+    "name": "Fcitx5 Enhanced",
+    "website": "https://github.com/rebron1900/fcitx5-enhanced",
+    "licenses": [
+        "GPL-3.0-only"
+    ]
+}

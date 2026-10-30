@@ -27,7 +27,6 @@ import org.fcitx.fcitx5.android.data.prefs.AppPrefs
 import org.fcitx.fcitx5.android.data.prefs.ManagedPreferenceProvider
 import org.fcitx.fcitx5.android.data.theme.Theme
 import org.fcitx.fcitx5.android.data.theme.ThemeManager
-import org.fcitx.fcitx5.android.data.theme.glassBackground
 import org.fcitx.fcitx5.android.data.theme.isEnhancedGlass
 import org.fcitx.fcitx5.android.input.bar.KawaiiBarComponent
 import org.fcitx.fcitx5.android.input.broadcast.InputBroadcaster
@@ -35,6 +34,7 @@ import org.fcitx.fcitx5.android.input.broadcast.PreeditEmptyStateComponent
 import org.fcitx.fcitx5.android.input.broadcast.PunctuationComponent
 import org.fcitx.fcitx5.android.input.broadcast.ReturnKeyDrawableComponent
 import org.fcitx.fcitx5.android.input.candidates.horizontal.HorizontalCandidateComponent
+import org.fcitx.fcitx5.android.input.keyboard.glassKeyboardBorder
 import org.fcitx.fcitx5.android.input.keyboard.CommonKeyActionListener
 import org.fcitx.fcitx5.android.input.keyboard.KeyboardHeightPercentBase.DisplayMetrics
 import org.fcitx.fcitx5.android.input.keyboard.KeyboardHeightPercentBase.RealSize
@@ -229,6 +229,12 @@ class InputView(
         broadcaster.onImeUpdate(fcitx.runImmediately { inputMethodEntryCached })
 
         customBackground.imageDrawable = theme.backgroundDrawable(keyBorder)
+        if (theme.isEnhancedGlass && theme is Theme.Custom && theme.backgroundImage != null) {
+            val alpha = ThemeManager.prefs.glassBackgroundAlpha.getValue()
+            customBackground.imageAlpha = (255 - alpha).coerceAtLeast(10)
+            customBackground.foreground = android.graphics.drawable.ColorDrawable(
+                android.graphics.Color.argb(alpha / 2, 0, 0, 0))
+        }
 
         keyboardView = constraintLayout {
             // allow MotionEvent to be delivered to keyboard while pressing on padding views.
@@ -268,9 +274,12 @@ class InputView(
         }
 
         if (theme.isEnhancedGlass) {
+            val glassRadius = dp(ThemeManager.prefs.glassCornerRadius.getValue().toFloat())
+            keyboardView.foreground = glassKeyboardBorder(theme.isDark, glassRadius,
+                resources.displayMetrics.density)
             keyboardView.outlineProvider = object : ViewOutlineProvider() {
                 override fun getOutline(view: View, outline: Outline) {
-                    outline.setRoundRect(0, 0, view.width, view.height, dp(20f))
+                    outline.setRoundRect(0, 0, view.width, view.height, glassRadius)
                 }
             }
             keyboardView.clipToOutline = true
@@ -401,9 +410,7 @@ class InputView(
         super.onAttachedToWindow()
         if (theme.isEnhancedGlass && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             service.window.window?.let { window ->
-                glassEffect = GlassWindowEffect(window, keyboardView) { translucent ->
-                    customBackground.imageDrawable = theme.glassBackground(translucent)
-                }.also { it.attach() }
+                glassEffect = GlassWindowEffect(window, keyboardView).also { it.attach() }
             }
         }
     }

@@ -34,6 +34,20 @@ class ThemePrefs(sharedPreferences: SharedPreferences) :
         return pref
     }
 
+    val enhancedGlass = switch(R.string.enhanced_glass, "enhanced_glass", true,
+        summary = R.string.enhanced_glass_summary)
+
+    val glassBlurRadius = int(R.string.glass_blur_radius, "glass_blur_radius", 100, 0, 100, "px",
+        enableUiOn = { enhancedGlass.getValue() })
+    val glassBackgroundAlpha = int(R.string.glass_background_alpha, "glass_background_alpha", 60, 0, 255,
+        enableUiOn = { enhancedGlass.getValue() })
+    val glassKeyAlpha = int(R.string.glass_key_alpha, "glass_key_alpha", 140, 0, 255,
+        enableUiOn = { enhancedGlass.getValue() })
+    val glassCornerRadius = int(R.string.glass_corner_radius, "glass_corner_radius", 20, 0, 48, "dp",
+        enableUiOn = { enhancedGlass.getValue() })
+    val glassKeyBorder = switch(R.string.glass_key_border, "glass_key_border", true,
+        enableUiOn = { enhancedGlass.getValue() })
+
     val keyBorder = switch(R.string.key_border, "key_border", false)
 
     val keyBorderStroke = switch(

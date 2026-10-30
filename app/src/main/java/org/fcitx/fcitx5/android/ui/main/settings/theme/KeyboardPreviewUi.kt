@@ -8,6 +8,8 @@ package org.fcitx.fcitx5.android.ui.main.settings.theme
 import android.content.Context
 import android.content.res.Configuration
 import android.graphics.Color
+import android.graphics.Outline
+import android.view.ViewOutlineProvider
 import android.graphics.drawable.Drawable
 import android.view.View
 import android.widget.FrameLayout
@@ -20,6 +22,8 @@ import org.fcitx.fcitx5.android.data.prefs.AppPrefs
 import org.fcitx.fcitx5.android.data.prefs.ManagedPreference
 import org.fcitx.fcitx5.android.data.theme.Theme
 import org.fcitx.fcitx5.android.data.theme.ThemeManager
+import org.fcitx.fcitx5.android.data.theme.isEnhancedGlass
+import org.fcitx.fcitx5.android.input.keyboard.glassKeyboardBorder
 import org.fcitx.fcitx5.android.data.theme.ThemePrefs.NavbarBackground
 import org.fcitx.fcitx5.android.input.keyboard.TextKeyboard
 import org.fcitx.fcitx5.android.utils.navbarFrameHeight
@@ -184,7 +188,16 @@ class KeyboardPreviewUi(override val ctx: Context, val theme: Theme) : Ui {
         if (this::fakeKeyboardWindow.isInitialized) {
             fakeInputView.removeView(fakeKeyboardWindow)
         }
-        fakeKawaiiBar.backgroundColor = if (keyBorder) Color.TRANSPARENT else theme.barColor
+        fakeKawaiiBar.backgroundColor = if (theme.isEnhancedGlass || keyBorder) Color.TRANSPARENT else theme.barColor
+        val radius = ctx.dp(ThemeManager.prefs.glassCornerRadius.getValue().toFloat())
+        fakeInputView.clipToOutline = theme.isEnhancedGlass
+        fakeInputView.outlineProvider = object : ViewOutlineProvider() {
+            override fun getOutline(view: View, outline: Outline) {
+                outline.setRoundRect(0, 0, view.width, view.height, radius)
+            }
+        }
+        fakeInputView.foreground = if (theme.isEnhancedGlass)
+            glassKeyboardBorder(theme.isDark, radius, ctx.resources.displayMetrics.density) else null
         fakeKeyboardWindow = TextKeyboard(ctx, theme).also {
             it.onAttach()
         }

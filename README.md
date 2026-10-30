@@ -71,25 +71,32 @@ In case you want Fcitx5 on other platforms: [macOS](https://github.com/fcitx-con
 |:-:|:-:|
 |<img src="https://user-images.githubusercontent.com/13914967/202181845-6a5f6bb2-a877-468c-851a-fd7e66e64ed4.png" width="360px">|<img src="https://user-images.githubusercontent.com/13914967/202181861-dd253439-1d5e-4f5f-9535-934f28796a6b.png" width="360px">|
 
-## Enhanced Glass skin
+## Built-in Fcitx5 Enhanced
 
-Two optional built-in themes, `EnhancedGlassLight` and `EnhancedGlassDark`, provide
-translucent keys, diagonal glass reflections and a rounded keyboard background.
-Select them in **Settings → Theme**. To switch manually, disable **Follow system
-day/night theme**, or assign the two skins as the light and dark themes.
+Open **Settings → Theme → Configuration → Fcitx5 Enhanced (built in)**
+(Chinese: **设置 → 主题 → 配置 → Fcitx5 增强（内置）**). The switch is enabled
+by default and applies to the selected theme, including custom image themes.
+The adjacent controls adjust blur radius, background opacity, key opacity,
+keyboard corner radius and glass key reflections. Defaults match the original
+module: 100px blur, background alpha 60/255, key alpha 140/255 and 20dp corners.
 
-The appearance is inspired by [rebron1900/fcitx5-enhanced](https://github.com/rebron1900/fcitx5-enhanced)
-(reference commit `acce4a8ab48cf231afe5c2df85a7ea3625424bf2`). This is a native
-implementation of the skin: it needs no Root or LSPosed. Key radius, margins and
-press feedback follow the existing theme preferences. Existing theme selections
-are preserved.
+This ports the skin effects from [rebron1900/fcitx5-enhanced](https://github.com/rebron1900/fcitx5-enhanced)
+at commit `acce4a8ab48cf231afe5c2df85a7ea3625424bf2`, including its original
+`GlassBorderDrawable` renderer and theme-derived background tint. It needs no
+Root or LSPosed. The ported code is licensed under GPL-3.0; see
+[LICENSE.GPL-3.0](LICENSE.GPL-3.0) and the source file notices.
 
-On Android 12 and later, supported devices use system background blur confined
-to the keyboard. When system blur is disabled (for example by battery saver),
-or the device's window implementation cannot confine it, the background falls
-back to an opaque gradient. The theme preview also uses this gradient.
-Older Android versions use the same fallback. The source module's voice input,
-clipboard shortcuts and configuration app are outside the scope of this skin.
+Key radius, margins, key backgrounds and press feedback retain the keyboard's
+existing settings, as in the module. Enable **Key border** for filled keys;
+leave it disabled for glass outlines without key backgrounds. The earlier
+`EnhancedGlassLight` / `EnhancedGlassDark` selections remain available as
+Pixel-based palettes, but selecting them is not required to enable the effects.
+
+Android 12 and later use system background blur confined to the keyboard.
+The background tint remains translucent when blur is unavailable, matching
+the module. The settings preview shows tint, reflections and corners; actual
+cross-window blur is visible when the input method is open. Voice input and
+the source module's extra shortcut toolbar are not part of this skin port.
 
 ## Get involved
 

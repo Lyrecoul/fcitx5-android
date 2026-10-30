@@ -321,4 +321,11 @@
     <string name="keyboard_height_percent_base">Keyboard height percent base</string>
     <string name="display_metrics">Display metrics (Resources.getDisplayMetrics)</string>
     <string name="real_size">Real size (Display.getRealSize)</string>
+    <string name="enhanced_glass">Fcitx5 Enhanced (built in)</string>
+    <string name="enhanced_glass_summary">Apply the enhanced module’s glass effects to the selected theme. Enable key backgrounds below for filled keys.</string>
+    <string name="glass_blur_radius">Glass background blur</string>
+    <string name="glass_background_alpha">Glass background opacity (0–255)</string>
+    <string name="glass_key_alpha">Key background opacity (0–255)</string>
+    <string name="glass_corner_radius">Glass keyboard corner radius</string>
+    <string name="glass_key_border">Glass key reflections</string>
 </resources>

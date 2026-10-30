@@ -248,22 +248,10 @@ object ThemePreset {
 
     val EnhancedGlassLight = PixelLight.copy(
         name = "EnhancedGlassLight",
-        backgroundColor = 0xfff5f8ff.toInt(),
-        keyboardColor = 0xffe1e6f5.toInt(),
-        barColor = 0x00000000,
-        keyBackgroundColor = 0x8cffffff.toInt(),
-        altKeyBackgroundColor = 0x8ce1e1e1.toInt(),
-        keyShadowColor = 0x00000000,
     )
 
     val EnhancedGlassDark = PixelDark.copy(
         name = "EnhancedGlassDark",
-        backgroundColor = 0xff1e2332.toInt(),
-        keyboardColor = 0xff141928.toInt(),
-        barColor = 0x00000000,
-        keyBackgroundColor = 0x8c464646.toInt(),
-        altKeyBackgroundColor = 0x8c373737.toInt(),
-        keyShadowColor = 0x00000000,
     )
 
     /**

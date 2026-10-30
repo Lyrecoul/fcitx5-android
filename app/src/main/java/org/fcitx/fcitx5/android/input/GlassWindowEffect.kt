@@ -14,15 +14,16 @@ import android.os.Build
 import android.view.View
 import android.view.Window
 import android.view.WindowManager
+import android.view.ViewTreeObserver
 import androidx.annotation.RequiresApi
+import org.fcitx.fcitx5.android.data.theme.ThemeManager
 import java.util.function.Consumer
 
-/** Uses the public window blur API; an opaque tint is retained when blur is unavailable. */
+/** Bounds the system blur to the keyboard. Tint and alpha follow the original module. */
 @RequiresApi(Build.VERSION_CODES.S)
 class GlassWindowEffect(
     private val window: Window,
-    private val keyboard: View,
-    private val setTranslucent: (Boolean) -> Unit
+    private val keyboard: View
 ) {
     private val manager = keyboard.context.getSystemService(WindowManager::class.java)
     private val originalBackground = window.decorView.background
@@ -33,6 +34,10 @@ class GlassWindowEffect(
     private val blurListener = Consumer<Boolean> {
         if (attached) updateBounds(force = true)
     }
+    private val preDrawListener = ViewTreeObserver.OnPreDrawListener {
+        confineBlur()
+        true
+    }
     private val layoutListener = View.OnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
         updateBounds()
     }
@@ -41,6 +46,7 @@ class GlassWindowEffect(
         attached = true
         keyboard.addOnLayoutChangeListener(layoutListener)
         window.decorView.addOnLayoutChangeListener(layoutListener)
+        window.decorView.viewTreeObserver.addOnPreDrawListener(preDrawListener)
         updateBounds()
         manager.addCrossWindowBlurEnabledListener(keyboard.context.mainExecutor, blurListener)
     }
@@ -57,7 +63,7 @@ class GlassWindowEffect(
         // Confine both the tint and the system-created blur layer to the keyboard.
         val shape = GradientDrawable().apply {
             setColor(Color.TRANSPARENT)
-            cornerRadius = 20 * keyboard.resources.displayMetrics.density
+            cornerRadius = ThemeManager.prefs.glassCornerRadius.getValue() * keyboard.resources.displayMetrics.density
         }
         window.setBackgroundDrawable(object : InsetDrawable(
             shape, left, top,
@@ -69,12 +75,13 @@ class GlassWindowEffect(
                 return false
             }
         })
-        val confined = confineBlur()
-        setTranslucent(manager.isCrossWindowBlurEnabled && confined)
+        // The platform creates its blur layer asynchronously. Confine it before drawing,
+        // rather than cancelling the request while that layer is still being created.
+        window.setBackgroundBlurRadius(if (manager.isCrossWindowBlurEnabled)
+            ThemeManager.prefs.glassBlurRadius.getValue() else 0)
     }
 
     private fun confineBlur(): Boolean {
-        window.setBackgroundBlurRadius(if (manager.isCrossWindowBlurEnabled) 100 else 0)
         val bounds = lastBounds ?: return false
         fun confine(drawable: Drawable?): Boolean {
             if (drawable !is LayerDrawable) return false
@@ -83,7 +90,12 @@ class GlassWindowEffect(
                 if (child.javaClass.simpleName == "BackgroundBlurDrawable") {
                     val right = (bounds[4] - bounds[0] - bounds[2]).coerceAtLeast(0)
                     val bottom = (bounds[5] - bounds[1] - bounds[3]).coerceAtLeast(0)
-                    drawable.setLayerInset(index, bounds[0], bounds[1], right, bottom)
+                    if (drawable.getLayerInsetLeft(index) != bounds[0] ||
+                        drawable.getLayerInsetTop(index) != bounds[1] ||
+                        drawable.getLayerInsetRight(index) != right ||
+                        drawable.getLayerInsetBottom(index) != bottom) {
+                        drawable.setLayerInset(index, bounds[0], bounds[1], right, bottom)
+                    }
                     // setLayerInset alone does not update child bounds until the next layout.
                     val parentBounds = drawable.bounds
                     child.setBounds(parentBounds.left + bounds[0], parentBounds.top + bounds[1],
@@ -94,10 +106,15 @@ class GlassWindowEffect(
             }
             return false
         }
-        return confine(window.decorView.background).also { confined ->
-            // OEMs may use a different drawable hierarchy. Never blur the entire app behind the IME.
-            if (!confined) window.setBackgroundBlurRadius(0)
+        // DecorView.getBackground() returns the original drawable, hiding the platform's
+        // blur LayerDrawable. Its public callback chain leads to the layer that draws it.
+        var current: Drawable? = window.decorView.background
+        var result = false
+        repeat(4) {
+            if (!result) result = confine(current)
+            current = current?.callback as? Drawable
         }
+        return result
     }
 
     fun detach() {
@@ -105,6 +122,7 @@ class GlassWindowEffect(
         manager.removeCrossWindowBlurEnabledListener(blurListener)
         keyboard.removeOnLayoutChangeListener(layoutListener)
         window.decorView.removeOnLayoutChangeListener(layoutListener)
+        window.decorView.viewTreeObserver.removeOnPreDrawListener(preDrawListener)
         window.setBackgroundBlurRadius(0)
         window.setBackgroundDrawable(originalBackground)
     }

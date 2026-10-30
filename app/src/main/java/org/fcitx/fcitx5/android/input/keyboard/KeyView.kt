@@ -14,6 +14,7 @@ import android.graphics.Typeface
 import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.InsetDrawable
+import android.graphics.drawable.LayerDrawable
 import android.graphics.drawable.RippleDrawable
 import android.graphics.drawable.StateListDrawable
 import android.util.TypedValue
@@ -64,7 +65,7 @@ abstract class KeyView(ctx: Context, val theme: Theme, val def: KeyDef.Appearanc
 
     init {
         val prefs = ThemeManager.prefs
-        bordered = theme.isEnhancedGlass || prefs.keyBorder.getValue()
+        bordered = prefs.keyBorder.getValue()
         borderStroke = prefs.keyBorderStroke.getValue()
         rippled = prefs.keyRippleEffect.getValue()
         radius = dp(prefs.keyRadius.getValue().toFloat())
@@ -97,6 +98,8 @@ abstract class KeyView(ctx: Context, val theme: Theme, val def: KeyDef.Appearanc
     @FloatRange(0.0, 1.0)
     var layoutMarginRight = 0f
 
+    private var pressHighlight: Drawable? = null
+
     /**
      * [KeyView] contains 2 parts: `TouchEventView` and `AppearanceView`.
      *
@@ -127,9 +130,7 @@ abstract class KeyView(ctx: Context, val theme: Theme, val def: KeyDef.Appearanc
             }
             val borderOrShadowWidth = dp(1)
             // background: key border
-            appearanceView.background = if (theme.isEnhancedGlass) glassKeyBackgroundDrawable(
-                bkgColor, theme.isDark, radius, dp(1f), hMargin, vMargin
-            ) else if (borderStroke) borderedKeyBackgroundDrawable(
+            appearanceView.background = if (borderStroke) borderedKeyBackgroundDrawable(
                 bkgColor, theme.keyShadowColor,
                 radius, borderOrShadowWidth, hMargin, vMargin
             ) else shadowedKeyBackgroundDrawable(
@@ -146,6 +147,22 @@ abstract class KeyView(ctx: Context, val theme: Theme, val def: KeyDef.Appearanc
             }
         }
         add(appearanceView, lParams(matchParent, matchParent))
+        applyGlassStyle()
+    }
+
+    private fun applyGlassStyle(
+        hInset: Int = hMargin, vInset: Int = vMargin, keyRadius: Float = radius,
+        oval: Boolean = false
+    ) {
+        if (!theme.isEnhancedGlass) return
+        appearanceView.background?.applyGlassAlpha()
+        if (ThemeManager.prefs.glassKeyBorder.getValue()) {
+            val border = glassKeyBorder(theme.isDark, keyRadius, resources.displayMetrics.density,
+                hInset, vInset, oval)
+            appearanceView.foreground = pressHighlight?.let {
+                LayerDrawable(arrayOf(border, it))
+            } ?: border
+        }
     }
 
     private fun setupPressHighlight(mask: Drawable? = null) {
@@ -155,7 +172,7 @@ abstract class KeyView(ctx: Context, val theme: Theme, val def: KeyDef.Appearanc
                 // ripple should be masked with an opaque color
                 mask ?: highlightMaskDrawable(Color.WHITE)
             )
-        } else if (bordered && borderStroke && !theme.isEnhancedGlass) {
+        } else if (bordered && borderStroke) {
             StateListDrawable().apply {
                 addState(
                     intArrayOf(android.R.attr.state_pressed),
@@ -174,6 +191,7 @@ abstract class KeyView(ctx: Context, val theme: Theme, val def: KeyDef.Appearanc
                 )
             }
         }
+        pressHighlight = appearanceView.foreground
     }
 
     private fun highlightMaskDrawable(@ColorInt color: Int): Drawable {
@@ -232,6 +250,7 @@ abstract class KeyView(ctx: Context, val theme: Theme, val def: KeyDef.Appearanc
                         if (rippled) Color.WHITE else theme.keyPressHighlightColor
                     )
                 )
+                applyGlassStyle(hInset, vInset, bkgRadius)
             }
             R.id.button_return -> {
                 val drawableSize = min(min(w, h), dp(35))
@@ -246,6 +265,7 @@ abstract class KeyView(ctx: Context, val theme: Theme, val def: KeyDef.Appearanc
                         hInset, vInset, if (rippled) Color.WHITE else theme.keyPressHighlightColor
                     )
                 )
+                applyGlassStyle(hInset, vInset, radius, oval = true)
             }
         }
     }
