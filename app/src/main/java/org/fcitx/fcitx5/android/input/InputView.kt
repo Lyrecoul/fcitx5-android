@@ -7,9 +7,11 @@ package org.fcitx.fcitx5.android.input
 
 import android.annotation.SuppressLint
 import android.content.res.Configuration
+import android.graphics.Outline
 import android.graphics.Point
 import android.os.Build
 import android.view.View
+import android.view.ViewOutlineProvider
 import android.view.WindowInsets
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InlineSuggestionsResponse
@@ -25,6 +27,8 @@ import org.fcitx.fcitx5.android.data.prefs.AppPrefs
 import org.fcitx.fcitx5.android.data.prefs.ManagedPreferenceProvider
 import org.fcitx.fcitx5.android.data.theme.Theme
 import org.fcitx.fcitx5.android.data.theme.ThemeManager
+import org.fcitx.fcitx5.android.data.theme.glassBackground
+import org.fcitx.fcitx5.android.data.theme.isEnhancedGlass
 import org.fcitx.fcitx5.android.input.bar.KawaiiBarComponent
 import org.fcitx.fcitx5.android.input.broadcast.InputBroadcaster
 import org.fcitx.fcitx5.android.input.broadcast.PreeditEmptyStateComponent
@@ -79,6 +83,8 @@ class InputView(
     private val customBackground = imageView {
         scaleType = ImageView.ScaleType.CENTER_CROP
     }
+
+    private var glassEffect: GlassWindowEffect? = null
 
     private val placeholderOnClickListener = OnClickListener { }
 
@@ -261,6 +267,15 @@ class InputView(
             })
         }
 
+        if (theme.isEnhancedGlass) {
+            keyboardView.outlineProvider = object : ViewOutlineProvider() {
+                override fun getOutline(view: View, outline: Outline) {
+                    outline.setRoundRect(0, 0, view.width, view.height, dp(20f))
+                }
+            }
+            keyboardView.clipToOutline = true
+        }
+
         updateKeyboardSize()
 
         add(preedit.ui.root, lParams(matchParent, wrapContent) {
@@ -382,7 +397,22 @@ class InputView(
         return kawaiiBar.handleInlineSuggestions(response)
     }
 
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        if (theme.isEnhancedGlass && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            service.window.window?.let { window ->
+                glassEffect = GlassWindowEffect(window, keyboardView) { translucent ->
+                    customBackground.imageDrawable = theme.glassBackground(translucent)
+                }.also { it.attach() }
+            }
+        }
+    }
+
     override fun onDetachedFromWindow() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            glassEffect?.detach()
+            glassEffect = null
+        }
         advancedPrefs.unregisterOnChangeListener(onKeyboardSizeChangeListener)
         keyboardPrefs.unregisterOnChangeListener(onKeyboardSizeChangeListener)
         // clear DynamicScope, implies that InputView should not be attached again after detached.

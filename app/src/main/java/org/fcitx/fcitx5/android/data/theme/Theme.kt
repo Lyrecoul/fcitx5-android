@@ -56,7 +56,8 @@ sealed class Theme : Parcelable {
     abstract val genericActiveForegroundColor: Int
 
     open fun backgroundDrawable(keyBorder: Boolean = false): Drawable {
-        return ColorDrawable(if (keyBorder) backgroundColor else keyboardColor)
+        return if (isEnhancedGlass) glassBackground()
+        else ColorDrawable(if (keyBorder) backgroundColor else keyboardColor)
     }
 
     @Serializable

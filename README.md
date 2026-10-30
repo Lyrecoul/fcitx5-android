@@ -71,6 +71,26 @@ In case you want Fcitx5 on other platforms: [macOS](https://github.com/fcitx-con
 |:-:|:-:|
 |<img src="https://user-images.githubusercontent.com/13914967/202181845-6a5f6bb2-a877-468c-851a-fd7e66e64ed4.png" width="360px">|<img src="https://user-images.githubusercontent.com/13914967/202181861-dd253439-1d5e-4f5f-9535-934f28796a6b.png" width="360px">|
 
+## Enhanced Glass skin
+
+Two optional built-in themes, `EnhancedGlassLight` and `EnhancedGlassDark`, provide
+translucent keys, diagonal glass reflections and a rounded keyboard background.
+Select them in **Settings → Theme**. To switch manually, disable **Follow system
+day/night theme**, or assign the two skins as the light and dark themes.
+
+The appearance is inspired by [rebron1900/fcitx5-enhanced](https://github.com/rebron1900/fcitx5-enhanced)
+(reference commit `acce4a8ab48cf231afe5c2df85a7ea3625424bf2`). This is a native
+implementation of the skin: it needs no Root or LSPosed. Key radius, margins and
+press feedback follow the existing theme preferences. Existing theme selections
+are preserved.
+
+On Android 12 and later, supported devices use system background blur confined
+to the keyboard. When system blur is disabled (for example by battery saver),
+or the device's window implementation cannot confine it, the background falls
+back to an opaque gradient. The theme preview also uses this gradient.
+Older Android versions use the same fallback. The source module's voice input,
+clipboard shortcuts and configuration app are outside the scope of this skin.
+
 ## Get involved
 
 Trello kanban: https://trello.com/b/gftk6ZdV/kanban

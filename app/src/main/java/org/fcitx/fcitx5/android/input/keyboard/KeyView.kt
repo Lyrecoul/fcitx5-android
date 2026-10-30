@@ -27,6 +27,7 @@ import androidx.core.view.updateLayoutParams
 import org.fcitx.fcitx5.android.R
 import org.fcitx.fcitx5.android.data.theme.Theme
 import org.fcitx.fcitx5.android.data.theme.ThemeManager
+import org.fcitx.fcitx5.android.data.theme.isEnhancedGlass
 import org.fcitx.fcitx5.android.data.theme.ThemePrefs.PunctuationPosition
 import org.fcitx.fcitx5.android.input.AutoScaleTextView
 import org.fcitx.fcitx5.android.input.keyboard.KeyDef.Appearance.Border
@@ -63,7 +64,7 @@ abstract class KeyView(ctx: Context, val theme: Theme, val def: KeyDef.Appearanc
 
     init {
         val prefs = ThemeManager.prefs
-        bordered = prefs.keyBorder.getValue()
+        bordered = theme.isEnhancedGlass || prefs.keyBorder.getValue()
         borderStroke = prefs.keyBorderStroke.getValue()
         rippled = prefs.keyRippleEffect.getValue()
         radius = dp(prefs.keyRadius.getValue().toFloat())
@@ -126,7 +127,9 @@ abstract class KeyView(ctx: Context, val theme: Theme, val def: KeyDef.Appearanc
             }
             val borderOrShadowWidth = dp(1)
             // background: key border
-            appearanceView.background = if (borderStroke) borderedKeyBackgroundDrawable(
+            appearanceView.background = if (theme.isEnhancedGlass) glassKeyBackgroundDrawable(
+                bkgColor, theme.isDark, radius, dp(1f), hMargin, vMargin
+            ) else if (borderStroke) borderedKeyBackgroundDrawable(
                 bkgColor, theme.keyShadowColor,
                 radius, borderOrShadowWidth, hMargin, vMargin
             ) else shadowedKeyBackgroundDrawable(
@@ -152,7 +155,7 @@ abstract class KeyView(ctx: Context, val theme: Theme, val def: KeyDef.Appearanc
                 // ripple should be masked with an opaque color
                 mask ?: highlightMaskDrawable(Color.WHITE)
             )
-        } else if (bordered && borderStroke) {
+        } else if (bordered && borderStroke && !theme.isEnhancedGlass) {
             StateListDrawable().apply {
                 addState(
                     intArrayOf(android.R.attr.state_pressed),
