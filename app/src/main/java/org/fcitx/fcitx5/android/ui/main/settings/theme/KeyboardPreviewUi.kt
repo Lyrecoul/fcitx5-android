@@ -9,9 +9,10 @@ import android.content.Context
 import android.content.res.Configuration
 import android.graphics.Color
 import android.graphics.Outline
-import android.view.ViewOutlineProvider
+import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.Drawable
 import android.view.View
+import android.view.ViewOutlineProvider
 import android.widget.FrameLayout
 import android.widget.ImageView
 import androidx.constraintlayout.widget.ConstraintLayout
@@ -191,11 +192,17 @@ class KeyboardPreviewUi(override val ctx: Context, val theme: Theme) : Ui {
         fakeKawaiiBar.backgroundColor = if (theme.isEnhancedGlass || keyBorder) Color.TRANSPARENT else theme.barColor
         val radius = ctx.dp(ThemeManager.prefs.glassCornerRadius.getValue().toFloat())
         fakeInputView.clipToOutline = theme.isEnhancedGlass
-        fakeInputView.outlineProvider = object : ViewOutlineProvider() {
+        // Glass needs a sample surface behind it. Otherwise the elevation shadow is
+        // visible through the tint, and dark themes wash out against the settings page.
+        root.background = if (theme.isEnhancedGlass) ColorDrawable(theme.backgroundColor) else null
+        val previewOutline = object : ViewOutlineProvider() {
             override fun getOutline(view: View, outline: Outline) {
                 outline.setRoundRect(0, 0, view.width, view.height, radius)
             }
         }
+        root.outlineProvider = if (theme.isEnhancedGlass) previewOutline else ViewOutlineProvider.BOUNDS
+        root.clipToOutline = theme.isEnhancedGlass
+        fakeInputView.outlineProvider = previewOutline
         fakeInputView.foreground = if (theme.isEnhancedGlass)
             glassKeyboardBorder(theme.isDark, radius, ctx.resources.displayMetrics.density) else null
         fakeKeyboardWindow = TextKeyboard(ctx, theme).also {

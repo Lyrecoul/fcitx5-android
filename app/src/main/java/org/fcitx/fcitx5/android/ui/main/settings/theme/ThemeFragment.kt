@@ -9,7 +9,6 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.view.ViewOutlineProvider
 import androidx.annotation.Keep
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
@@ -60,7 +59,6 @@ class ThemeFragment : Fragment() {
         val preview = previewUi.root.apply {
             scaleX = 0.5f
             scaleY = 0.5f
-            outlineProvider = ViewOutlineProvider.BOUNDS
             elevation = dp(4f)
         }
 

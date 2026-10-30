@@ -47,6 +47,8 @@ class ThemeListFragment : Fragment() {
     private val onThemeChangeListener = ThemeManager.OnThemeChangeListener {
         lifecycleScope.launch {
             updateSelectedThemes(it)
+            // Glass preferences affect every preview, including unselected themes.
+            themeListAdapter.notifyItemRangeChanged(ThemeListAdapter.OFFSET, themeListAdapter.entries.size)
         }
     }
 

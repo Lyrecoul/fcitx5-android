@@ -6,6 +6,9 @@ package org.fcitx.fcitx5.android.ui.main.settings.theme
 
 import android.content.Context
 import android.content.res.ColorStateList
+import android.graphics.Color
+import android.graphics.Outline
+import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.GradientDrawable
 import android.graphics.drawable.ShapeDrawable
 import android.graphics.drawable.shapes.OvalShape
@@ -16,6 +19,9 @@ import android.widget.ImageView
 import androidx.core.view.isVisible
 import org.fcitx.fcitx5.android.R
 import org.fcitx.fcitx5.android.data.theme.Theme
+import org.fcitx.fcitx5.android.data.theme.ThemeManager
+import org.fcitx.fcitx5.android.data.theme.isEnhancedGlass
+import org.fcitx.fcitx5.android.input.keyboard.applyGlassAlpha
 import org.fcitx.fcitx5.android.utils.rippleDrawable
 import splitties.dimensions.dp
 import splitties.views.backgroundColor
@@ -97,9 +103,18 @@ class ThemeThumbnailUi(override val ctx: Context) : Ui {
     fun setTheme(theme: Theme) {
         root.apply {
             foreground = rippleDrawable(theme.keyPressHighlightColor)
+            background = if (theme.isEnhancedGlass) ColorDrawable(theme.backgroundColor) else null
+            clipToOutline = theme.isEnhancedGlass
+            outlineProvider = if (theme.isEnhancedGlass) object : ViewOutlineProvider() {
+                override fun getOutline(view: View, outline: Outline) {
+                    val scale = view.width.toFloat() / ctx.resources.displayMetrics.widthPixels
+                    val radius = ctx.dp(ThemeManager.prefs.glassCornerRadius.getValue().toFloat()) * scale
+                    outline.setRoundRect(0, 0, view.width, view.height, radius)
+                }
+            } else ViewOutlineProvider.BOUNDS
         }
         bkg.imageDrawable = theme.backgroundDrawable()
-        bar.backgroundColor = theme.barColor
+        bar.backgroundColor = if (theme.isEnhancedGlass) Color.TRANSPARENT else theme.barColor
         spaceBar.background = GradientDrawable().apply {
             shape = GradientDrawable.RECTANGLE
             cornerRadius = ctx.dp(2f)
@@ -107,6 +122,10 @@ class ThemeThumbnailUi(override val ctx: Context) : Ui {
         }
         returnKey.background = ShapeDrawable(OvalShape()).apply {
             paint.color = theme.accentKeyBackgroundColor
+        }
+        if (theme.isEnhancedGlass) {
+            spaceBar.background.applyGlassAlpha()
+            returnKey.background.applyGlassAlpha()
         }
         val foregroundTint = ColorStateList.valueOf(theme.altKeyTextColor)
         editButton.apply {
