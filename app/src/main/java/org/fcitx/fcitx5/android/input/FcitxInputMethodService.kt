@@ -66,6 +66,7 @@ import org.fcitx.fcitx5.android.data.theme.ThemeManager
 import org.fcitx.fcitx5.android.input.cursor.CursorRange
 import org.fcitx.fcitx5.android.input.cursor.CursorTracker
 import org.fcitx.fcitx5.android.utils.InputMethodUtil
+import org.fcitx.fcitx5.android.utils.PanguFormatter
 import org.fcitx.fcitx5.android.utils.alpha
 import org.fcitx.fcitx5.android.utils.forceShowSelf
 import org.fcitx.fcitx5.android.utils.inputMethodManager
@@ -140,6 +141,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
     private val prefs = AppPrefs.getInstance()
     private val inlineSuggestions by prefs.keyboard.inlineSuggestions
     private val ignoreSystemCursor by prefs.advanced.ignoreSystemCursor
+    private val autoPanguSpacing by prefs.advanced.autoPanguSpacing
 
     private val recreateInputViewPrefs: Array<ManagedPreference<*>> = arrayOf(
         prefs.keyboard.expandKeypressArea,
@@ -436,22 +438,54 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
             }
             return
         }
+        // Do this after the composing-text fast path: the latter must preserve the
+        // composing span and its cursor exactly as supplied by the input method.
+        val textToCommit = formatCommittedText(text)
+
         // committed text should replace composing (if any), replace selected range (if any),
         // or simply prepend before cursor
         val start = if (composing.isEmpty()) selection.latest.start else composing.start
         resetComposingState()
         if (cursor == -1) {
-            selection.predict(start + text.length)
-            ic.commitText(text, 1)
+            selection.predict(start + textToCommit.length)
+            ic.commitText(textToCommit, 1)
         } else {
-            val target = start + cursor
+            val leadingAdded = if (textToCommit.startsWith(' ') && !text.startsWith(' ')) 1 else 0
+            val target = start + cursor + leadingAdded
             selection.predict(target)
             ic.withBatchEdit {
-                commitText(text, 1)
+                commitText(textToCommit, 1)
                 setSelection(target, target)
             }
         }
     }
+
+    private fun formatCommittedText(text: String): String {
+        if (!autoPanguSpacing || text.isEmpty()) return text
+        val ic = currentInputConnection ?: return text
+        val inputType = currentInputEditorInfo.inputType
+        if (inputType and InputType.TYPE_MASK_CLASS != InputType.TYPE_CLASS_TEXT ||
+            inputType and InputType.TYPE_MASK_VARIATION == InputType.TYPE_TEXT_VARIATION_PASSWORD ||
+            inputType and InputType.TYPE_MASK_VARIATION == InputType.TYPE_TEXT_VARIATION_WEB_PASSWORD
+        ) return text
+
+        // getTextBeforeCursor() ends at the active cursor, which is normally at the
+        // end of the composing/selected range. Remove the range being replaced so
+        // that it cannot influence the spacing decision.
+        val replacementLength = if (composing.isNotEmpty()) {
+            composing.end - composing.start
+        } else {
+            selection.latest.end - selection.latest.start
+        }
+        val beforeWithReplacement = ic.getTextBeforeCursor(replacementLength + 1, 0)
+            ?.toString().orEmpty()
+        val before = beforeWithReplacement.dropLast(
+            replacementLength.coerceAtMost(beforeWithReplacement.length)
+        )
+        val after = ic.getTextAfterCursor(1, 0)?.toString().orEmpty()
+        return PanguFormatter.format(text, before, after)
+    }
+
 
     private fun sendDownKeyEvent(eventTime: Long, keyEventCode: Int, metaState: Int = 0) {
         currentInputConnection?.sendKeyEvent(

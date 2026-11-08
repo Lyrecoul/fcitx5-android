@@ -11,6 +11,7 @@
     <string name="behavior">行为</string>
     <string name="advanced">高级</string>
     <string name="ignore_sys_cursor">忽略系统光标位置</string>
+    <string name="auto_pangu_spacing">自动处理中英文、数字与符号间距</string>
     <string name="hide_key_config">隐藏快捷键配置</string>
     <string name="_not_available_">（不可用）</string>
     <string name="button_haptic_feedback">按键时振动</string>

@@ -40,6 +40,11 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
 
     inner class Advanced : ManagedPreferenceCategory(R.string.advanced, sharedPreferences) {
         val ignoreSystemCursor = switch(R.string.ignore_sys_cursor, "ignore_system_cursor", false)
+        val autoPanguSpacing = switch(
+            R.string.auto_pangu_spacing,
+            "auto_pangu_spacing",
+            true
+        )
         val hideKeyConfig = switch(R.string.hide_key_config, "hide_key_config", true)
         val disableAnimation = switch(R.string.disable_animation, "disable_animation", false)
         val vivoKeypressWorkaround = switch(
@@ -410,6 +415,7 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
                 internal.verboseLog,
                 internal.editorInfoInspector,
                 advanced.ignoreSystemCursor,
+                advanced.autoPanguSpacing,
                 advanced.disableAnimation,
                 advanced.vivoKeypressWorkaround
             ).forEach {
