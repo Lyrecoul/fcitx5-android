@@ -27,6 +27,7 @@ class GlassWindowEffect(
 ) {
     private val manager = keyboard.context.getSystemService(WindowManager::class.java)
     private val originalBackground = window.decorView.background
+    private val originalClipToOutline = window.decorView.clipToOutline
     private var attached = false
     private var lastBounds: List<Int>? = null
     private val location = IntArray(2)
@@ -75,6 +76,9 @@ class GlassWindowEffect(
                 return false
             }
         })
+        // The background outline describes only the blur, not the fullscreen IME.
+        // Clipping DecorView to it also cuts off preedit and key popups above the keyboard.
+        window.decorView.clipToOutline = false
         // The platform creates its blur layer asynchronously. Confine it before drawing,
         // rather than cancelling the request while that layer is still being created.
         window.setBackgroundBlurRadius(if (manager.isCrossWindowBlurEnabled)
@@ -125,5 +129,6 @@ class GlassWindowEffect(
         window.decorView.viewTreeObserver.removeOnPreDrawListener(preDrawListener)
         window.setBackgroundBlurRadius(0)
         window.setBackgroundDrawable(originalBackground)
+        window.decorView.clipToOutline = originalClipToOutline
     }
 }

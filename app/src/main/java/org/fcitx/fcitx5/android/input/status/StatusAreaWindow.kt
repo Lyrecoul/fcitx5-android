@@ -18,7 +18,7 @@ import org.fcitx.fcitx5.android.core.SubtypeManager
 import org.fcitx.fcitx5.android.daemon.FcitxConnection
 import org.fcitx.fcitx5.android.daemon.launchOnReady
 import org.fcitx.fcitx5.android.data.prefs.AppPrefs
-import org.fcitx.fcitx5.android.data.theme.ThemeManager
+import org.fcitx.fcitx5.android.data.theme.panelBackgroundColor
 import org.fcitx.fcitx5.android.input.FcitxInputMethodService
 import org.fcitx.fcitx5.android.input.bar.ui.ToolButton
 import org.fcitx.fcitx5.android.input.broadcast.InputBroadcastReceiver
@@ -160,13 +160,9 @@ class StatusAreaWindow : InputWindow.ExtendedInputWindow<StatusAreaWindow>(),
         }
     }
 
-    private val keyBorder by ThemeManager.prefs.keyBorder
-
     val view by lazy {
         context.recyclerView {
-            if (!keyBorder) {
-                backgroundColor = theme.barColor
-            }
+            backgroundColor = theme.panelBackgroundColor
             layoutManager = gridLayoutManager(4)
             adapter = this@StatusAreaWindow.adapter
         }

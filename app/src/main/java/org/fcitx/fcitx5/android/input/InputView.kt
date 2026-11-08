@@ -209,6 +209,9 @@ class InputView(
 
     val keyboardView: View
 
+    internal val visiblePreedit: View?
+        get() = preedit.ui.root.takeIf { it.visibility == VISIBLE }
+
     init {
         // MUST call before any operation
         setupScope()
@@ -285,16 +288,25 @@ class InputView(
             keyboardView.clipToOutline = true
         }
 
-        updateKeyboardSize()
-
-        add(preedit.ui.root, lParams(matchParent, wrapContent) {
+        add(preedit.ui.root, lParams(if (preedit.roundedBackground) wrapContent else matchParent, wrapContent) {
             above(keyboardView)
-            centerHorizontally()
+            if (preedit.roundedBackground) {
+                startOfParent()
+                endOfParent()
+                horizontalBias = 0f
+                constrainedWidth = true
+                marginStart = keyboardSidePaddingPx + dp(12)
+                marginEnd = keyboardSidePaddingPx + dp(12)
+                bottomMargin = dp(3)
+            } else {
+                centerHorizontally()
+            }
         })
         add(keyboardView, lParams(matchParent, wrapContent) {
             centerHorizontally()
             bottomOfParent()
         })
+        updateKeyboardSize()
         add(popup.root, lParams(matchParent, matchParent) {
             centerVertically()
             centerHorizontally()
@@ -338,7 +350,14 @@ class InputView(
                 endToStartOf(rightPaddingSpace)
             }
         }
-        preedit.ui.root.setPadding(sidePadding, 0, sidePadding, 0)
+        if (preedit.roundedBackground) {
+            preedit.ui.root.updateLayoutParams<LayoutParams> {
+                marginStart = sidePadding + dp(12)
+                marginEnd = sidePadding + dp(12)
+            }
+        } else {
+            preedit.ui.root.setPadding(sidePadding, 0, sidePadding, 0)
+        }
         kawaiiBar.view.setPadding(sidePadding, 0, sidePadding, 0)
     }
 

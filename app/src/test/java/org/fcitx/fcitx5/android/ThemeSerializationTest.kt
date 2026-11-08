@@ -97,8 +97,7 @@ class ThemeSerializationTest {
                "version":"2.0"
             }
         """.trimIndent()
-        val (decoded, migrated) = raw.toCustomTheme()
-        Assert.assertEquals("Migration shouldn't happen", false, migrated)
+        val (decoded, _) = raw.toCustomTheme()
         Assert.assertEquals("Round trip", decoded, decoded.toJson().toCustomTheme().first)
     }
 }

@@ -12,6 +12,7 @@ import androidx.constraintlayout.widget.ConstraintLayout
 import org.fcitx.fcitx5.android.R
 import org.fcitx.fcitx5.android.data.theme.Theme
 import org.fcitx.fcitx5.android.data.theme.ThemeManager
+import org.fcitx.fcitx5.android.data.theme.panelBackgroundColor
 import org.fcitx.fcitx5.android.input.keyboard.BackspaceKey
 import org.fcitx.fcitx5.android.input.keyboard.BaseKeyboard
 import org.fcitx.fcitx5.android.input.keyboard.ImageKeyView
@@ -125,8 +126,8 @@ class ExpandedCandidateLayout(context: Context, theme: Theme) : ConstraintLayout
         val inset = dp(if (landscape) keyVerticalMarginLandscape else keyVerticalMargin)
         tabsContainer.background =
             singleSideBorderDrawable(dp(1), theme.dividerColor, Gravity.RIGHT, inset)
+        backgroundColor = theme.panelBackgroundColor
         if (!keyBorder) {
-            backgroundColor = theme.barColor
             embeddedKeyboard.background =
                 singleSideBorderDrawable(dp(1), theme.dividerColor, Gravity.LEFT, inset)
         }

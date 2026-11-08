@@ -36,4 +36,12 @@ class PanguFormatterTest {
     fun preservesSupplementaryCodePoints() {
         assertEquals("😀world", PanguFormatter.format("😀world", "你好"))
     }
+
+    @Test
+    fun mapsUtf16CursorAcrossInsertedSpaces() {
+        assertEquals(4, PanguFormatter.cursorOffset("中文A", 2, leadingSpace = true))
+        assertEquals(5, PanguFormatter.cursorOffset("中文A", 3, leadingSpace = true))
+        assertEquals(2, PanguFormatter.cursorOffset("😀中文", 2))
+        assertEquals(7, PanguFormatter.cursorOffset("𠀀ab文", 5))
+    }
 }

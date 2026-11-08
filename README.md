@@ -92,11 +92,44 @@ leave it disabled for glass outlines without key backgrounds. The earlier
 `EnhancedGlassLight` / `EnhancedGlassDark` selections remain available as
 Pixel-based palettes, but selecting them is not required to enable the effects.
 
+Toolbar panels (clipboard, input-method actions and expanded candidates) share
+the keyboard's translucent background in enhanced mode, including with **Key
+border** disabled. Switching to the English keyboard preserves key opacity
+and glass reflections.
+
+The floating preedit uses one theme-colored rounded background, without
+rectangular fills behind individual text lines. It follows content width,
+aligns 12dp inside the keyboard's side padding and sits 3dp above the keyboard.
+Its existing 0.8 opacity is retained. Setting the enhanced corner radius to
+zero, or disabling the enhancement, restores the original preedit styling.
+
 Android 12 and later use system background blur confined to the keyboard.
 The background tint remains translucent when blur is unavailable, matching
 the module. The settings preview shows tint, reflections and corners; actual
 cross-window blur is visible when the input method is open. Voice input and
 the source module's extra shortcut toolbar are not part of this skin port.
+
+### Automatic Chinese/Latin spacing
+
+**Settings → Advanced → Automatic Chinese/Latin spacing** applies to candidate
+commits and English direct typing. Spaces are added within newly committed
+text and between uninterrupted commits, not across existing document text
+after moving the cursor or replacing a selection. Deleting, moving the cursor
+or pressing Enter ends the previous typing run. Existing text to the right is
+left untouched; password, URL and email fields are excluded.
+
+Backspace also removes a space inserted by automatic spacing when deleting
+the last character on its right would leave that space unnecessary. For example,
+`中文 ab` becomes `中文 a`, then `中文`. Manually entered spaces are retained.
+Cleanup is limited to spaces owned by the current typing/deletion run; cursor
+movement, selection, editor changes and disabling the feature discard ownership.
+Spaces still needed by existing text to the right are preserved.
+
+The Android regressions exercise panel rendering and real service commits with
+an Android input connection. Run them on a test device/emulator with
+`adb shell am instrument --no-hidden-api-checks -w -e class org.fcitx.fcitx5.android.GlassPanelTest,org.fcitx.fcitx5.android.PanguInputConnectionTest org.fcitx.fcitx5.android.debug.test/androidx.test.runner.AndroidJUnitRunner`.
+The flag is needed only for the test harness to inject the editor connection;
+the keyboard itself does not require hidden-API access.
 
 ## Get involved
 

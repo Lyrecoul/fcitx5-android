@@ -4,10 +4,12 @@
  */
 package org.fcitx.fcitx5.android.input.preedit
 
+import android.graphics.drawable.GradientDrawable
 import android.view.View
 import org.fcitx.fcitx5.android.core.FcitxEvent
 import org.fcitx.fcitx5.android.data.theme.Theme
 import org.fcitx.fcitx5.android.data.theme.ThemeManager
+import org.fcitx.fcitx5.android.data.theme.isEnhancedGlass
 import org.fcitx.fcitx5.android.input.broadcast.InputBroadcastReceiver
 import org.fcitx.fcitx5.android.input.dependency.context
 import org.fcitx.fcitx5.android.input.dependency.theme
@@ -25,14 +27,24 @@ class PreeditComponent : UniqueComponent<PreeditComponent>(), Dependent, InputBr
     private val context by manager.context()
     private val theme by manager.theme()
 
+    val roundedBackground: Boolean
+        get() = theme.isEnhancedGlass && ThemeManager.prefs.glassCornerRadius.getValue() > 0
+
     val ui by lazy {
         val keyBorder = ThemeManager.prefs.keyBorder.getValue()
         val bkgColor =
             if (!keyBorder && theme is Theme.Builtin) theme.barColor else theme.backgroundColor
         PreeditUi(context, theme, setupTextView = {
-            backgroundColor = bkgColor
+            if (!roundedBackground) backgroundColor = bkgColor
             horizontalPadding = dp(8)
         }).apply {
+            if (roundedBackground) {
+                // One surface for both lines; child fills would cover its rounded corners.
+                root.background = GradientDrawable().apply {
+                    setColor(theme.barColor.takeUnless { it == 0 } ?: 0xff303030.toInt())
+                    cornerRadius = context.dp(ThemeManager.prefs.glassCornerRadius.getValue().toFloat())
+                }
+            }
             // TODO make it customizable
             root.alpha = 0.8f
             root.visibility = View.INVISIBLE

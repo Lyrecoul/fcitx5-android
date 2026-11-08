@@ -15,39 +15,42 @@ object PanguFormatter {
     fun format(text: String, before: String = "", after: String = ""): String {
         if (text.isEmpty()) return text
 
-        val codePoints = buildList {
-            text.toCodePointSequence().forEach { add(it) }
-        }
-        if (codePoints.isEmpty()) return text
-
-        val result = StringBuilder(text.length + 2)
-        if (before.lastCodePoint()?.let { needsSpace(it, codePoints.first()) } == true &&
-            !before.lastCodePoint()!!.isWhitespaceCodePoint() &&
-            !codePoints.first().isWhitespaceCodePoint()
-        ) {
-            result.append(' ')
-        }
-
-        codePoints.forEachIndexed { index, codePoint ->
-            if (index > 0 && needsSpace(codePoints[index - 1], codePoint) &&
-                !codePoints[index - 1].isWhitespaceCodePoint() &&
-                !codePoint.isWhitespaceCodePoint()
-            ) {
+        var previous = before.lastCodePoint()
+        var result: StringBuilder? = null
+        var index = 0
+        while (index < text.length) {
+            val codePoint = text.codePointAt(index)
+            if (previous?.let { needsSpace(it, codePoint) } == true) {
+                if (result == null) result = StringBuilder(text.length + 2).append(text, 0, index)
                 result.append(' ')
             }
-            result.appendCodePoint(codePoint)
+            result?.appendCodePoint(codePoint)
+            previous = codePoint
+            index += Character.charCount(codePoint)
         }
-
-        if (after.firstCodePoint()?.let { needsSpace(codePoints.last(), it) } == true &&
-            !codePoints.last().isWhitespaceCodePoint() &&
-            !after.firstCodePoint()!!.isWhitespaceCodePoint()
-        ) {
+        if (after.firstCodePoint()?.let { needsSpace(previous!!, it) } == true) {
+            if (result == null) result = StringBuilder(text.length + 1).append(text)
             result.append(' ')
         }
-        return result.toString()
+        return result?.toString() ?: text
     }
 
-    private fun needsSpace(left: Int, right: Int): Boolean {
+    /** Maps an engine's UTF-16 cursor through inserted internal and leading spaces. */
+    fun cursorOffset(text: String, cursor: Int, leadingSpace: Boolean = false): Int {
+        val offset = cursor.coerceIn(0, text.length)
+        var added = if (leadingSpace) 1 else 0
+        var index = 0
+        var previous: Int? = null
+        while (index < text.length && index <= offset) {
+            val codePoint = text.codePointAt(index)
+            if (previous?.let { needsSpace(it, codePoint) } == true) added++
+            previous = codePoint
+            index += Character.charCount(codePoint)
+        }
+        return offset + added
+    }
+
+    internal fun needsSpace(left: Int, right: Int): Boolean {
         if (left.isCjk() && right.isLatinOrDigit()) return true
         if (left.isLatinOrDigit() && right.isCjk()) return true
         if (left.isCjk() && right.isOpeningBracket()) return true
@@ -83,18 +86,8 @@ object PanguFormatter {
         else -> false
     }
 
-    private fun Int.isWhitespaceCodePoint() = Character.isWhitespace(this)
-
     private fun String.lastCodePoint(): Int? = if (isEmpty()) null else codePointBefore(length)
 
     private fun String.firstCodePoint(): Int? = if (isEmpty()) null else codePointAt(0)
 }
 
-private fun String.toCodePointSequence(): Sequence<Int> = sequence {
-    var index = 0
-    while (index < length) {
-        val codePoint = codePointAt(index)
-        yield(codePoint)
-        index += Character.charCount(codePoint)
-    }
-}

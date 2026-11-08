@@ -122,6 +122,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
     private var capabilityFlags = CapabilityFlags.DefaultFlags
 
     private val selection = CursorTracker()
+    private val panguSession = PanguInputSession()
 
     val currentInputSelection: CursorRange
         get() = selection.latest
@@ -238,6 +239,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
             }
             is FcitxEvent.KeyEvent -> event.data.let event@{
                 if (it.states.virtual) {
+                    if (it.up) return@event
                     // KeyEvent from virtual keyboard
                     when (it.sym.sym) {
                         FcitxKeyMapping.FcitxKey_BackSpace -> handleBackspaceKey()
@@ -254,6 +256,10 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
                     // KeyEvent from physical keyboard (or input method engine forwardKey)
                     // use cached event if available
                     cachedKeyEvents.remove(it.timestamp)?.let { keyEvent ->
+                        if (!KeyEvent.isModifierKey(keyEvent.keyCode) && handlePanguKeyEvent(
+                                keyEvent.keyCode, keyEvent.unicodeChar,
+                                keyEvent.action == KeyEvent.ACTION_DOWN, keyEvent.metaState
+                            )) return@event
                         /**
                          * intercept the KeyEvent which would cause the default [android.text.method.QwertyKeyListener]
                          * to show a Gingerbread-style CharacterPickerDialog
@@ -287,6 +293,9 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
                     }
                     // simulate key event
                     val keyCode = it.sym.keyCode
+                    if (!KeyEvent.isModifierKey(keyCode) &&
+                        handlePanguKeyEvent(it.sym.sym, it.unicode, !it.up, it.states.metaState, keyCode)
+                    ) return@event
                     if (keyCode != KeyEvent.KEYCODE_UNKNOWN) {
                         // recognized keyCode
                         val eventTime = SystemClock.uptimeMillis()
@@ -340,6 +349,9 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
     }
 
     private fun handleDeleteSurrounding(before: Int, after: Int) {
+        if (before == 1 && after == 0) {
+            if (deleteAutomaticSpaceOnBackspace()) return
+        } else panguSession.reset()
         val ic = currentInputConnection ?: return
         if (before > 0) {
             selection.predictOffset(-before)
@@ -352,11 +364,16 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
     }
 
     private fun handleBackspaceKey() {
+        if (deleteAutomaticSpaceOnBackspace()) return
         val lastSelection = selection.latest
         if (lastSelection.isNotEmpty()) {
             selection.predict(lastSelection.start)
         } else if (lastSelection.start > 0) {
-            selection.predictOffset(-1)
+            val before = currentInputConnection?.getTextBeforeCursor(2, 0)
+            val size = if (!before.isNullOrEmpty()) {
+                Character.charCount(Character.codePointBefore(before, before.length))
+            } else 1
+            selection.predictOffset(-size)
         }
         // In practice nobody (apart from ourselves) would set `privateImeOptions` to our
         // `DeleteSurroundingFlag`, leading to a behavior of simulating backspace key pressing
@@ -382,7 +399,30 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
         }
     }
 
+    private fun deleteAutomaticSpaceOnBackspace(): Boolean {
+        val ic = currentInputConnection ?: return false
+        val range = selection.latest
+        if (!panguSpacingEnabled() || range.isNotEmpty() || composing.isNotEmpty()) {
+            panguSession.reset()
+            return false
+        }
+        val before = ic.getTextBeforeCursor(6, 0) ?: run {
+            panguSession.reset()
+            return false
+        }
+        val after = ic.getTextAfterCursor(2, 0) ?: run {
+            panguSession.reset()
+            return false
+        }
+        val count = panguSession.backspace(range.start, before, after)
+        if (count == 0) return false
+        selection.predict(range.start - count)
+        ic.deleteSurroundingText(count, 0)
+        return true
+    }
+
     private fun handleReturnKey() {
+        panguSession.reset()
         currentInputEditorInfo.run {
             if (inputType and InputType.TYPE_MASK_CLASS == InputType.TYPE_NULL ||
                 imeOptions.hasFlag(EditorInfo.IME_FLAG_NO_ENTER_ACTION)
@@ -403,6 +443,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
     }
 
     private fun handleArrowKey(keyCode: Int) {
+        panguSession.reset()
         val type = currentInputEditorInfo.inputType and InputType.TYPE_MASK_CLASS
         val variation = currentInputEditorInfo.inputType and InputType.TYPE_MASK_VARIATION
         if (type == InputType.TYPE_NULL ||
@@ -424,13 +465,26 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
 
     fun commitText(text: String, cursor: Int = -1) {
         val ic = currentInputConnection ?: return
-        // when composing text equals commit content, finish composing text as-is
-        if (composing.isNotEmpty() && composingText.toString() == text) {
-            val c = if (cursor == -1) text.length else cursor
-            val target = composing.start + c
+        val start = if (composing.isEmpty()) selection.latest.start else composing.start
+        val textToCommit = formatCommittedText(text)
+        val commitCursor = if (cursor == -1) textToCommit.length else if (textToCommit == text) {
+            cursor
+        } else {
+            PanguFormatter.cursorOffset(text, cursor, textToCommit.startsWith(' ') && !text.startsWith(' '))
+        }
+        if (panguSpacingEnabled()) {
+            panguSession.onCommit(start, textToCommit.length, commitCursor)
+            panguSession.recordSpaces(start, text, textToCommit, commitCursor)
+        } else {
+            panguSession.reset()
+        }
+        // Preserve the composing span when formatting leaves it unchanged. Otherwise the
+        // normal commit replaces the whole span, even when its cursor is in the middle.
+        if (composing.isNotEmpty() && composingText.toString() == textToCommit) {
+            val target = start + commitCursor
             resetComposingState()
             ic.withBatchEdit {
-                if (selection.current.start != target) {
+                if (selection.latest.start != target || selection.latest.isNotEmpty()) {
                     selection.predict(target)
                     ic.setSelection(target, target)
                 }
@@ -438,21 +492,12 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
             }
             return
         }
-        // Do this after the composing-text fast path: the latter must preserve the
-        // composing span and its cursor exactly as supplied by the input method.
-        val textToCommit = formatCommittedText(text)
-
-        // committed text should replace composing (if any), replace selected range (if any),
-        // or simply prepend before cursor
-        val start = if (composing.isEmpty()) selection.latest.start else composing.start
         resetComposingState()
+        val target = start + commitCursor
+        selection.predict(target)
         if (cursor == -1) {
-            selection.predict(start + textToCommit.length)
             ic.commitText(textToCommit, 1)
         } else {
-            val leadingAdded = if (textToCommit.startsWith(' ') && !text.startsWith(' ')) 1 else 0
-            val target = start + cursor + leadingAdded
-            selection.predict(target)
             ic.withBatchEdit {
                 commitText(textToCommit, 1)
                 setSelection(target, target)
@@ -460,30 +505,55 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
         }
     }
 
-    private fun formatCommittedText(text: String): String {
-        if (!autoPanguSpacing || text.isEmpty()) return text
-        val ic = currentInputConnection ?: return text
-        val inputType = currentInputEditorInfo.inputType
-        if (inputType and InputType.TYPE_MASK_CLASS != InputType.TYPE_CLASS_TEXT ||
-            inputType and InputType.TYPE_MASK_VARIATION == InputType.TYPE_TEXT_VARIATION_PASSWORD ||
-            inputType and InputType.TYPE_MASK_VARIATION == InputType.TYPE_TEXT_VARIATION_WEB_PASSWORD
-        ) return text
+    private fun panguSpacingEnabled(): Boolean = autoPanguSpacing &&
+        PanguInputSession.supportsInputType(currentInputEditorInfo.inputType)
 
-        // getTextBeforeCursor() ends at the active cursor, which is normally at the
-        // end of the composing/selected range. Remove the range being replaced so
-        // that it cannot influence the spacing decision.
-        val replacementLength = if (composing.isNotEmpty()) {
-            composing.end - composing.start
-        } else {
-            selection.latest.end - selection.latest.start
+    private fun formatCommittedText(text: String): String {
+        if (!panguSpacingEnabled() || text.isEmpty()) return text
+        val ic = currentInputConnection ?: return text
+        val range = selection.latest
+        val start = if (composing.isEmpty()) range.start else composing.start
+        val selected = composing.isEmpty() && range.isNotEmpty()
+        // Only the boundary owned by our last uninterrupted commit may receive a space.
+        // Old text on either side of a user-selected insertion/replacement is untouched.
+        val before = if (panguSession.canUseBoundary(start, selected)) {
+            val offset = range.start - start
+            if (offset >= 0) {
+                val surrounding = ic.getTextBeforeCursor(offset + 2, 0) ?: ""
+                val boundary = surrounding.length - offset
+                if (boundary > 0) surrounding.subSequence(0, boundary).toString() else ""
+            } else ""
+        } else ""
+        return panguSession.format(text, start, selected, before)
+    }
+
+    private fun handlePanguKeyEvent(
+        key: Int, unicode: Int, down: Boolean, metaState: Int, androidKey: Int = key
+    ): Boolean {
+        val modified = metaState and (KeyEvent.META_CTRL_MASK or KeyEvent.META_ALT_MASK or
+            KeyEvent.META_META_MASK or KeyEvent.META_SYM_ON or KeyEvent.META_FUNCTION_ON) != 0
+        if (androidKey == KeyEvent.KEYCODE_DEL && !modified) {
+            // A forwarded key-up must not erase the ownership retained by key-down.
+            if (!down) return false
+            if (deleteAutomaticSpaceOnBackspace()) return true
+            val range = selection.latest
+            if (panguSpacingEnabled() && range.isEmpty() && composing.isEmpty() && range.start > 0) {
+                val before = currentInputConnection?.getTextBeforeCursor(2, 0)
+                val size = if (!before.isNullOrEmpty()) {
+                    Character.charCount(Character.codePointBefore(before, before.length))
+                } else 1
+                selection.predictOffset(-size)
+            }
+            return false
         }
-        val beforeWithReplacement = ic.getTextBeforeCursor(replacementLength + 1, 0)
-            ?.toString().orEmpty()
-        val before = beforeWithReplacement.dropLast(
-            replacementLength.coerceAtMost(beforeWithReplacement.length)
-        )
-        val after = ic.getTextAfterCursor(1, 0)?.toString().orEmpty()
-        return PanguFormatter.format(text, before, after)
+        return when (panguSession.onKeyEvent(key, unicode, down, panguSpacingEnabled(), modified)) {
+            PanguInputSession.KeyAction.Forward -> false
+            PanguInputSession.KeyAction.Consumed -> true
+            PanguInputSession.KeyAction.Commit -> {
+                commitText(Character.toString(unicode))
+                true
+            }
+        }
     }
 
 
@@ -520,6 +590,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
     }
 
     fun deleteSelection() {
+        panguSession.reset()
         val lastSelection = selection.latest
         if (lastSelection.isEmpty()) return
         selection.predict(lastSelection.start)
@@ -532,6 +603,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
         ctrl: Boolean = false,
         shift: Boolean = false
     ) {
+        panguSession.reset()
         var metaState = 0
         if (alt) metaState = KeyEvent.META_ALT_ON or KeyEvent.META_ALT_LEFT_ON
         if (ctrl) metaState = metaState or KeyEvent.META_CTRL_ON or KeyEvent.META_CTRL_LEFT_ON
@@ -548,6 +620,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
     }
 
     fun applySelectionOffset(offsetStart: Int, offsetEnd: Int = 0) {
+        panguSession.reset()
         val lastSelection = selection.latest
         currentInputConnection?.also {
             val start = max(lastSelection.start + offsetStart, 0)
@@ -559,6 +632,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
     }
 
     fun cancelSelection() {
+        panguSession.reset()
         val lastSelection = selection.latest
         if (lastSelection.isEmpty()) return
         val end = lastSelection.end
@@ -636,8 +710,14 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
             inputView?.keyboardView?.getLocationInWindow(inputViewLocation)
             outInsets.apply {
                 contentTopInsets = inputViewLocation[1]
-                visibleTopInsets = inputViewLocation[1]
-                touchableInsets = Insets.TOUCHABLE_INSETS_VISIBLE
+                val preedit = inputView?.visiblePreedit
+                visibleTopInsets = if (preedit != null) {
+                    preedit.getLocationInWindow(inputViewLocation)
+                    minOf(contentTopInsets, inputViewLocation[1])
+                } else contentTopInsets
+                // The noninteractive preedit must be visible without moving app content
+                // or intercepting touches in the transparent strip above the keyboard.
+                touchableInsets = Insets.TOUCHABLE_INSETS_CONTENT
             }
         } else {
             val n = decorView.findViewById<View>(android.R.id.navigationBarBackground)?.height ?: 0
@@ -764,6 +844,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
         // initialSel{Start,End} is outdated. but it's the client app's responsibility to send
         // right cursor position, try to workaround this would simply introduce more bugs.
         selection.resetTo(attribute.initialSelStart, attribute.initialSelEnd)
+        panguSession.reset()
         resetComposingState()
         val flags = CapabilityFlags.fromEditorInfo(attribute)
         capabilityFlags = flags
@@ -907,6 +988,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
         } else {
             // cursor update can't match any prediction: it's treated as a user input
             selection.resetTo(newSelStart, newSelEnd)
+            panguSession.reset()
         }
         // skip selection range update, we only care about selection cursor (zero width) here
         if (newSelStart != newSelEnd) return

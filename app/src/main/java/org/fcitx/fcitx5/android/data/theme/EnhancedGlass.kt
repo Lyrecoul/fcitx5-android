@@ -13,6 +13,11 @@ import android.graphics.drawable.GradientDrawable
 val Theme.isEnhancedGlass: Boolean
     get() = ThemeManager.prefs.enhancedGlass.getValue()
 
+/** Panel surfaces share InputView's glass tint instead of covering it with a solid fill. */
+val Theme.panelBackgroundColor: Int
+    get() = if (isEnhancedGlass || ThemeManager.prefs.keyBorder.getValue()) Color.TRANSPARENT
+    else barColor
+
 /** Same tint calculation as fcitx5-enhanced's FrostedGlassHelper. */
 fun Theme.glassBackground(): Drawable {
     val alpha = ThemeManager.prefs.glassBackgroundAlpha.getValue()

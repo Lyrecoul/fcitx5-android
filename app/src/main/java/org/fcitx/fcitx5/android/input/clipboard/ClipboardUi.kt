@@ -12,7 +12,7 @@ import androidx.transition.TransitionManager
 import org.fcitx.fcitx5.android.R
 import org.fcitx.fcitx5.android.data.prefs.AppPrefs
 import org.fcitx.fcitx5.android.data.theme.Theme
-import org.fcitx.fcitx5.android.data.theme.ThemeManager
+import org.fcitx.fcitx5.android.data.theme.panelBackgroundColor
 import org.fcitx.fcitx5.android.input.bar.ui.ToolButton
 import splitties.dimensions.dp
 import splitties.views.backgroundColor
@@ -43,13 +43,10 @@ class ClipboardUi(override val ctx: Context, private val theme: Theme) : Ui {
         add(enableUi.root, lParams(matchParent, matchParent))
     }
 
-    private val keyBorder by ThemeManager.prefs.keyBorder
     private val disableAnimation by AppPrefs.getInstance().advanced.disableAnimation
 
     override val root = coordinatorLayout {
-        if (!keyBorder) {
-            backgroundColor = theme.barColor
-        }
+        backgroundColor = theme.panelBackgroundColor
         add(viewAnimator, defaultLParams(matchParent, matchParent))
     }
 

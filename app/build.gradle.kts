@@ -58,6 +58,13 @@ android {
     }
 }
 
+androidComponents {
+    onVariants { variant ->
+        // Launcher aliases belong to the app; the test APK has its own resource namespace.
+        variant.androidTest?.resValues?.set(emptyMap())
+    }
+}
+
 fcitxComponent {
     includeLibs = listOf(
         "fcitx5",
