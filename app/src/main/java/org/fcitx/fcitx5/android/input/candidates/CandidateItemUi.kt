@@ -11,6 +11,7 @@ import androidx.core.text.color
 import org.fcitx.fcitx5.android.core.CandidateWord
 import org.fcitx.fcitx5.android.data.theme.Theme
 import org.fcitx.fcitx5.android.input.AutoScaleTextView
+import org.fcitx.fcitx5.android.input.TextFadeTransition
 import org.fcitx.fcitx5.android.input.keyboard.CustomGestureView
 import org.fcitx.fcitx5.android.utils.pressHighlightDrawable
 import splitties.views.dsl.core.Ui
@@ -31,6 +32,8 @@ class CandidateItemUi(override val ctx: Context, val theme: Theme) : Ui {
         setTextColor(theme.candidateTextColor)
     }
 
+    private val textFade = TextFadeTransition(text)
+
     override val root = view(::CustomGestureView) {
         background = pressHighlightDrawable(theme.keyPressHighlightColor)
 
@@ -47,7 +50,7 @@ class CandidateItemUi(override val ctx: Context, val theme: Theme) : Ui {
     fun updateCandidate(candidate: CandidateWord) {
         val fg = theme.candidateTextColor
         val altFg = theme.candidateCommentColor
-        text.text = buildSpannedString {
+        textFade.update(buildSpannedString {
             color(fg) {
                 append(candidate.text)
             }
@@ -59,6 +62,6 @@ class CandidateItemUi(override val ctx: Context, val theme: Theme) : Ui {
                     append(candidate.comment)
                 }
             }
-        }
+        })
     }
 }

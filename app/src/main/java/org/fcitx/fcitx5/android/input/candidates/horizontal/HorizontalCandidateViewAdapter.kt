@@ -32,8 +32,29 @@ open class HorizontalCandidateViewAdapter(val theme: Theme) :
     var total = -1
         private set
 
+    private var attachedView: RecyclerView? = null
+
+    override fun onAttachedToRecyclerView(recyclerView: RecyclerView) {
+        super.onAttachedToRecyclerView(recyclerView)
+        attachedView = recyclerView
+    }
+
+    override fun onDetachedFromRecyclerView(recyclerView: RecyclerView) {
+        attachedView = null
+        super.onDetachedFromRecyclerView(recyclerView)
+    }
+
     @SuppressLint("NotifyDataSetChanged")
     fun updateCandidates(data: Array<CandidateWord>, total: Int) {
+        if (data.isEmpty() && candidates.isNotEmpty()) {
+            // Snapshot visible glyphs before RecyclerView removes their holders.
+            attachedView?.let { recycler ->
+                for (i in 0 until recycler.childCount) {
+                    (recycler.getChildViewHolder(recycler.getChildAt(i)) as? CandidateViewHolder)
+                        ?.clear()
+                }
+            }
+        }
         this.candidates = data
         this.total = total
         notifyDataSetChanged()

@@ -55,6 +55,7 @@ In case you want Fcitx5 on other platforms: [macOS](https://github.com/fcitx-con
 - Symbol and Emoji picker
 - Plugin System for loading addons from other installed apk
 - Floating candidates panel when using physical keyboard
+- Candidate and preedit text use short opacity-only transitions (120 ms in, 80 ms out); ongoing typing updates immediately without sliding or scaling.
 
 ### Planned Features
 

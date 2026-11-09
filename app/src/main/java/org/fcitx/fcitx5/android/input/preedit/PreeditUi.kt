@@ -17,6 +17,7 @@ import androidx.annotation.ColorInt
 import androidx.core.text.buildSpannedString
 import org.fcitx.fcitx5.android.core.FcitxEvent
 import org.fcitx.fcitx5.android.data.theme.Theme
+import org.fcitx.fcitx5.android.input.TextFadeTransition
 import splitties.dimensions.dp
 import splitties.views.dsl.core.Ui
 import splitties.views.dsl.core.add
@@ -54,6 +55,9 @@ open class PreeditUi(
 
     private val downView = createTextView()
 
+    private val upFade = TextFadeTransition(upView)
+    private val downFade = TextFadeTransition(downView)
+
     var visible = false
         private set
 
@@ -63,7 +67,7 @@ open class PreeditUi(
     }
 
     private fun updateTextView(view: TextView, str: CharSequence, visible: Boolean) {
-        view.text = str
+        (if (view === upView) upFade else downFade).update(str)
         view.visibility = if (visible) View.VISIBLE else View.GONE
     }
 
