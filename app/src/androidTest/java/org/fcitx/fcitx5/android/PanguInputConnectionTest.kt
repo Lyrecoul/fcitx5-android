@@ -163,6 +163,50 @@ class PanguInputConnectionTest {
     }
 
     @Test
+    fun returningToEndAfterMiddleEditsResumesDirectTypingSpacing() = withEditor { editor ->
+        editor.commit("中文")
+        editor.acknowledge()
+        editor.move(1)
+        editor.key('x')
+        editor.key('x', up = true)
+        editor.key('y')
+        editor.key('y', up = true)
+        editor.acknowledge()
+        editor.move(editor.view.length())
+        editor.key('a')
+        editor.key('a', up = true)
+        editor.assertText("中xy文 a")
+        editor.commit("字")
+        editor.assertText("中xy文 a 字")
+    }
+
+    @Test
+    fun returningToEndSpacesCandidatesEvenWithInternalPreeditCursor() = withEditor { editor ->
+        editor.commit("abc")
+        editor.acknowledge()
+        editor.move(1)
+        editor.commit("中")
+        editor.acknowledge()
+        editor.move(editor.view.length())
+        editor.preedit("zhong", cursor = 2)
+        editor.commit("文")
+        editor.assertText("a中bc 文")
+    }
+
+    @Test
+    fun middlePreeditAndSelectionEndingAtDocumentEndPreserveOldBoundaries() = withEditor { editor ->
+        editor.existing("abcXYZ")
+        editor.move(3)
+        editor.preedit("zhong", cursor = 2)
+        editor.commit("文")
+        editor.assertText("abc文XYZ")
+        editor.acknowledge()
+        editor.move(editor.view.length(), 4)
+        editor.commit("a")
+        editor.assertText("abc文a")
+    }
+
+    @Test
     fun changedPreeditAndInternalCursorReplaceWholeSpan() = withEditor { editor ->
         editor.commit("abc")
         editor.preedit("zhong", cursor = 2)
@@ -212,9 +256,9 @@ class PanguInputConnectionTest {
         editor.commit("a")
         editor.acknowledge()
         editor.move(0)
-        editor.move(4)
+        editor.move(editor.view.length())
         editor.backspace()
-        editor.assertText("a中 ")
+        editor.assertText("a 中 ")
     }
 
     @Test
@@ -228,7 +272,7 @@ class PanguInputConnectionTest {
         editor.commit("a")
         editor.commit("𠀀")
         editor.backspace()
-        editor.assertText("中a")
+        editor.assertText("中 a")
     }
 
     @Test

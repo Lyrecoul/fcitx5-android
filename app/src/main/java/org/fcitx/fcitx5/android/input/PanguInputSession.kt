@@ -8,7 +8,7 @@ package org.fcitx.fcitx5.android.input
 import android.text.InputType
 import org.fcitx.fcitx5.android.utils.PanguFormatter
 
-/** Tracks only the boundary produced by uninterrupted commits, never surrounding old text. */
+/** Tracks uninterrupted commit boundaries and ownership of automatically inserted spaces. */
 internal class PanguInputSession {
     private var committedEnd = -1
     private var consumedKeys = IntArray(4)
@@ -25,9 +25,6 @@ internal class PanguInputSession {
 
     fun canUseBoundary(replacementStart: Int, selected: Boolean): Boolean =
         !selected && replacementStart >= 0 && replacementStart == committedEnd
-
-    fun format(text: String, replacementStart: Int, selected: Boolean, before: String): String =
-        PanguFormatter.format(text, if (canUseBoundary(replacementStart, selected)) before else "")
 
     fun onCommit(start: Int, length: Int, cursor: Int) {
         committedEnd = if (length > 0 && cursor == length) start + length else -1

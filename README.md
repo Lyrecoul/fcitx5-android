@@ -113,10 +113,12 @@ the source module's extra shortcut toolbar are not part of this skin port.
 
 **Settings → Advanced → Automatic Chinese/Latin spacing** applies to candidate
 commits and English direct typing. Spaces are added within newly committed
-text and between uninterrupted commits, not across existing document text
-after moving the cursor or replacing a selection. Deleting, moving the cursor
-or pressing Enter ends the previous typing run. Existing text to the right is
-left untouched; password, URL and email fields are excluded.
+text, between uninterrupted commits, and when appending at the document end
+after moving the cursor or editing earlier text. In the middle of a document,
+the first commit after moving the cursor or replacing a selection leaves old
+boundaries untouched. Deleting, moving the cursor or pressing Enter ends the
+previous typing run. Existing text to the right is left untouched; password,
+URL and email fields are excluded.
 
 Backspace also removes a space inserted by automatic spacing when deleting
 the last character on its right would leave that space unnecessary. For example,

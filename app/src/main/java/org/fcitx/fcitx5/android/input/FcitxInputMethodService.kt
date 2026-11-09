@@ -514,9 +514,13 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
         val range = selection.latest
         val start = if (composing.isEmpty()) range.start else composing.start
         val selected = composing.isEmpty() && range.isNotEmpty()
-        // Only the boundary owned by our last uninterrupted commit may receive a space.
-        // Old text on either side of a user-selected insertion/replacement is untouched.
-        val before = if (panguSession.canUseBoundary(start, selected)) {
+        // Resume spacing at the document end, but preserve old boundaries in the middle.
+        // A preedit cursor may be internal: inspect beyond the whole composing span.
+        val ownedBoundary = panguSession.canUseBoundary(start, selected)
+        val composingTail = if (composing.isEmpty()) 0 else composing.end - range.start
+        val atEnd = !ownedBoundary && !selected && start >= 0 && composingTail >= 0 &&
+            ic.getTextAfterCursor(composingTail + 1, 0)?.length == composingTail
+        val before = if (ownedBoundary || atEnd) {
             val offset = range.start - start
             if (offset >= 0) {
                 val surrounding = ic.getTextBeforeCursor(offset + 2, 0) ?: ""
@@ -524,7 +528,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
                 if (boundary > 0) surrounding.subSequence(0, boundary).toString() else ""
             } else ""
         } else ""
-        return panguSession.format(text, start, selected, before)
+        return PanguFormatter.format(text, before)
     }
 
     private fun handlePanguKeyEvent(

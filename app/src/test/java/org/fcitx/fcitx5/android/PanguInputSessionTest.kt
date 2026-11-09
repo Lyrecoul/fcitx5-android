@@ -16,15 +16,15 @@ class PanguInputSessionTest {
     @Test
     fun onlyUninterruptedCommitsOwnTheirLeftBoundary() {
         val session = PanguInputSession()
-        assertEquals("a", session.format("a", 2, false, "中"))
+        assertFalse(session.canUseBoundary(2, false))
         session.onCommit(0, 2, 2)
-        assertEquals(" a", session.format("a", 2, false, "中"))
-        assertEquals("a", session.format("a", 2, true, "中"))
-        assertEquals("a", session.format("a", 1, false, "中"))
+        assertTrue(session.canUseBoundary(2, false))
+        assertFalse(session.canUseBoundary(2, true))
+        assertFalse(session.canUseBoundary(1, false))
         session.reset()
-        assertEquals("a", session.format("a", 2, false, "中"))
+        assertFalse(session.canUseBoundary(2, false))
         session.onCommit(2, 1, 1)
-        assertEquals(" 字", session.format("字", 3, false, "a"))
+        assertTrue(session.canUseBoundary(3, false))
     }
 
     @Test
