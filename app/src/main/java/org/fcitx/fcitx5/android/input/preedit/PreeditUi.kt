@@ -28,7 +28,8 @@ import splitties.views.dsl.core.verticalLayout
 open class PreeditUi(
     override val ctx: Context,
     private val theme: Theme,
-    private val setupTextView: (TextView.() -> Unit)? = null
+    private val setupTextView: (TextView.() -> Unit)? = null,
+    private val animateCapsule: Boolean = false
 ) : Ui {
 
     class CursorSpan(ctx: Context, @ColorInt color: Int, metrics: Paint.FontMetricsInt) :
@@ -55,19 +56,28 @@ open class PreeditUi(
 
     private val downView = createTextView()
 
-    private val upFade = TextFadeTransition(upView)
-    private val downFade = TextFadeTransition(downView)
+    private val upFade = if (animateCapsule) null else TextFadeTransition(upView)
+    private val downFade = if (animateCapsule) null else TextFadeTransition(downView)
+    private val upTyping = if (animateCapsule) PreeditTextTransition(upView) else null
+    private val downTyping = if (animateCapsule) PreeditTextTransition(downView) else null
 
     var visible = false
         private set
 
-    override val root: View = verticalLayout {
+    override val root: View = if (animateCapsule) PreeditCapsuleLayout(ctx).apply {
+        add(upView, lParams())
+        add(downView, lParams())
+    } else verticalLayout {
         add(upView, lParams())
         add(downView, lParams())
     }
 
     private fun updateTextView(view: TextView, str: CharSequence, visible: Boolean) {
-        (if (view === upView) upFade else downFade).update(str)
+        if (animateCapsule) {
+            (if (view === upView) upTyping else downTyping)?.update(str)
+        } else {
+            (if (view === upView) upFade else downFade)?.update(str)
+        }
         view.visibility = if (visible) View.VISIBLE else View.GONE
     }
 

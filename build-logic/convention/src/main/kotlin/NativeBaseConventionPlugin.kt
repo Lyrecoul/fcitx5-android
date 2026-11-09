@@ -29,6 +29,9 @@ open class NativeBaseConventionPlugin : Plugin<Project> {
                             "-DVERSION_NAME=${Versions.baseVersionName}",
                             "-DPREBUILT_DIR=${prebuiltDir.absolutePath}"
                         )
+                        target.findProperty("ecmDir")?.toString()?.takeIf { it.isNotBlank() }?.let {
+                            arguments("-DECM_DIR=$it")
+                        }
                     }
                 }
             }

@@ -37,7 +37,7 @@ class PreeditComponent : UniqueComponent<PreeditComponent>(), Dependent, InputBr
         PreeditUi(context, theme, setupTextView = {
             if (!roundedBackground) backgroundColor = bkgColor
             horizontalPadding = dp(8)
-        }).apply {
+        }, animateCapsule = roundedBackground).apply {
             if (roundedBackground) {
                 // One surface for both lines; child fills would cover its rounded corners.
                 root.background = GradientDrawable().apply {
@@ -53,6 +53,10 @@ class PreeditComponent : UniqueComponent<PreeditComponent>(), Dependent, InputBr
 
     override fun onInputPanelUpdate(data: FcitxEvent.InputPanelEvent.Data) {
         ui.update(data)
-        ui.root.visibility = if (ui.visible) View.VISIBLE else View.INVISIBLE
+        if (roundedBackground) {
+            (ui.root as PreeditCapsuleLayout).setContentVisible(ui.visible)
+        } else {
+            ui.root.visibility = if (ui.visible) View.VISIBLE else View.INVISIBLE
+        }
     }
 }

@@ -55,7 +55,7 @@ In case you want Fcitx5 on other platforms: [macOS](https://github.com/fcitx-con
 - Symbol and Emoji picker
 - Plugin System for loading addons from other installed apk
 - Floating candidates panel when using physical keyboard
-- Candidate and preedit text use short opacity-only transitions (120 ms in, 80 ms out); ongoing typing updates immediately without sliding or scaling.
+- Candidate and non-rounded preedit text use short opacity-only transitions (120 ms in, 80 ms out); ongoing typing updates immediately without sliding or scaling.
 
 ### Planned Features
 
@@ -101,8 +101,13 @@ and glass reflections.
 The floating preedit uses one theme-colored rounded background, without
 rectangular fills behind individual text lines. It follows content width,
 aligns 12dp inside the keyboard's side padding and sits 3dp above the keyboard.
-Its existing 0.8 opacity is retained. Setting the enhanced corner radius to
-zero, or disabling the enhancement, restores the original preedit styling.
+Its existing 0.8 opacity is retained. The capsule background and outline resize
+continuously over 160 ms, including appearance and dismissal, without scaling
+the glyphs. Text keeps its unchanged prefix and updates the changed suffix in
+40 ms batches of at least two letters (or the remaining letters); fast typing
+retargets the pending batch instead of queuing old preedit. Setting the enhanced
+corner radius to zero, or disabling the enhancement, restores the original
+preedit styling.
 
 Android 12 and later use system background blur confined to the keyboard.
 The background tint remains translucent when blur is unavailable, matching
@@ -144,10 +149,53 @@ Discuss on Telegram: [@fcitx5_android_group](https://t.me/fcitx5_android_group) 
 
 ## Build
 
+### Workstation development profile
+
+This checkout's `gradle.properties` is configured for local Linux development:
+
+| Setting | Value |
+| --- | --- |
+| Gradle daemon JDK | Android Studio JBR 25 at `/opt/android-studio/jbr` |
+| Android SDK | `/home/lyrecoul/Android/Sdk` in `local.properties` |
+| Compile / target SDK | 36 |
+| NDK | 29.0.14206865 |
+| CMake / Build Tools | 3.31.6 / 36.1.0 |
+| Default ABI | x86_64 (local emulator) |
+| Gradle worker limit | 8 |
+| Host ECM | `/home/lyrecoul/.local/share/ECM/cmake` |
+
+Build without exporting toolchain variables on every invocation:
+
+```sh
+./gradlew :app:assembleDebug
+./gradlew :app:installDebug
+# Physical ARM64 devices:
+./gradlew :app:assembleDebug -PbuildABI=arm64-v8a
+```
+
+Debug APKs are written under `app/build/outputs/apk/debug/`. Installation needs
+an authorized device/emulator matching the selected ABI. Java/Kotlin Android
+bytecode still targets Java 11; the Gradle daemon runtime is separate. Set
+Android Studio's Gradle JDK to the same JBR. The shell launcher can use the
+system Java; `org.gradle.java.home` pins the daemon used for compilation.
+
+ECM 6.31.0 was extracted from the signed Arch `extra-cmake-modules` package into
+`~/.local/share/ECM`, without root or system package changes. `ecmDir` forwards
+its location to CMake; `ECM_DIR` in the environment takes precedence. If ECM is
+installed system-wide instead, remove `ecmDir` to use `/usr/share/ECM/cmake`.
+GNU gettext (`msgfmt`) must also be on `PATH`. An incomplete NDK 28 directory
+is not usable; this profile explicitly selects the installed NDK 29 instead.
+
+These are workstation-specific defaults, not CI requirements. Change the paths
+when moving this checkout. Existing `BUILD_ABI`, `NDK_VERSION`, `CMAKE_VERSION`
+and `BUILD_TOOLS_VERSION` environment overrides still take precedence over
+project properties. No signing identity or release configuration is changed.
+
+
 ### Dependencies
 
-- Android SDK Platform & Build-Tools 35.
-- Android NDK (Side by side) 25 & CMake 3.22.1, they can be installed using SDK Manager in Android Studio or `sdkmanager` command line.
+- Android SDK Platform 36 and Build Tools 36.1.0.
+- Android NDK 29.0.14206865 and CMake 3.31.6 for the local profile above; shared fallback versions are in `build-logic/convention/src/main/kotlin/Versions.kt`.
 - [KDE/extra-cmake-modules](https://github.com/KDE/extra-cmake-modules)
 - GNU Gettext >= 0.20 (for `msgfmt` binary; or install `appstream` if you really have to use gettext <= 0.19.)
 

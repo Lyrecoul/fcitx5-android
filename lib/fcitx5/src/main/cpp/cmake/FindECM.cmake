@@ -8,7 +8,7 @@ elseif(CMAKE_HOST_APPLE)
     else()
         set(ECM_DIR /usr/local/share/ECM/cmake)
     endif()
-else()
+elseif(NOT DEFINED ECM_DIR)
     set(ECM_DIR /usr/share/ECM/cmake)
 endif()
 
