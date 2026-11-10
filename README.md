@@ -98,6 +98,12 @@ the keyboard's translucent background in enhanced mode, including with **Key
 border** disabled. Switching to the English keyboard preserves key opacity
 and glass reflections.
 
+Toolbar button icons retain the theme color when it provides at least 4.5:1
+contrast against the toolbar surface; otherwise they use a readable theme text
+color or black/white. On image or translucent glass backgrounds, icons use a
+thin opposite-color outline instead of a filled backing. The toolbar and button
+padding stay transparent, with the original icon size and touch targets.
+
 The floating preedit uses one theme-colored rounded background, without
 rectangular fills behind individual text lines. It follows content width,
 aligns 12dp inside the keyboard's side padding and sits 3dp above the keyboard.
