@@ -56,6 +56,7 @@ In case you want Fcitx5 on other platforms: [macOS](https://github.com/fcitx-con
 - Plugin System for loading addons from other installed apk
 - Floating candidates panel when using physical keyboard
 - Candidate and non-rounded preedit text use short opacity-only transitions (120 ms in, 80 ms out); ongoing typing updates immediately without sliding or scaling.
+- Compact floating keyboard in landscape, with configurable size and left/right placement.
 
 ### Planned Features
 
@@ -120,6 +121,32 @@ The background tint remains translucent when blur is unavailable, matching
 the module. The settings preview shows tint, reflections and corners; actual
 cross-window blur is visible when the input method is open. Voice input and
 the source module's extra shortcut toolbar are not part of this skin port.
+
+### Landscape compact keyboard
+
+**Settings → Virtual Keyboard → Compact keyboard in landscape** (Chinese:
+**设置 → 虚拟键盘 → 横屏小键盘**) is enabled by default. In landscape the
+keyboard floats at the bottom right, initially 460dp wide and 40% of the
+available height (at least 200dp including the toolbar and drag handle). Width
+is clamped to the window; system bars and display cutouts are avoided. Size
+and left-side placement are configurable in the same settings section.
+
+Expand the keyboard toolbar and tap the keyboard icon to switch between
+compact and full-width layouts. The choice is remembered. Portrait keeps its
+normal keyboard size and padding. Compact mode does not reserve space or pan
+the app, and touches outside the keyboard reach the app, including beside the
+preedit. Candidates, symbols, emoji and clipboard panels use the compact width.
+
+Hold anywhere in the full-width, 24dp-high strip at the top of the compact
+keyboard to move it. Its centered rounded handle stays 56×4dp. The keyboard, preedit and touchable area move
+together, staying within the usable window
+with room above for preedit. The relative position is saved across keyboard
+reopening and rotation. Changing left-side placement resets the position to
+the selected bottom corner. Full-width and portrait layouts hide the handle.
+
+Key previews use current window coordinates on every press, including after
+dragging, and place their labels immediately above the pressed key using its
+actual row height rather than a fixed-height offset.
 
 ### Automatic Chinese/Latin spacing
 

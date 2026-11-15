@@ -80,10 +80,10 @@ abstract class KeyView(ctx: Context, val theme: Theme, val def: KeyDef.Appearanc
 
     private val cachedLocation = intArrayOf(0, 0)
     private val cachedBounds = Rect()
-    private var boundsValid = false
     val bounds: Rect
         get() = cachedBounds.also {
-            if (!boundsValid) updateBounds()
+            // Ancestors can move without relaying out this key (floating keyboard drag).
+            updateBounds()
         }
 
     /**
@@ -207,11 +207,9 @@ abstract class KeyView(ctx: Context, val theme: Theme, val def: KeyDef.Appearanc
     fun updateBounds() {
         val (x, y) = cachedLocation.also { appearanceView.getLocationInWindow(it) }
         cachedBounds.set(x, y, x + appearanceView.width, y + appearanceView.height)
-        boundsValid = true
     }
 
     override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
-        boundsValid = false
         if (layoutMarginLeft != 0f || layoutMarginRight != 0f) {
             val w = right - left
             val h = bottom - top

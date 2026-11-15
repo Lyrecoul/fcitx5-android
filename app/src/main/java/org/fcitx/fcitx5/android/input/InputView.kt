@@ -9,7 +9,11 @@ import android.annotation.SuppressLint
 import android.content.res.Configuration
 import android.graphics.Outline
 import android.graphics.Point
+import android.graphics.drawable.GradientDrawable
+import android.graphics.drawable.InsetDrawable
 import android.os.Build
+import android.view.MotionEvent
+import android.view.ViewConfiguration
 import android.view.View
 import android.view.ViewOutlineProvider
 import android.view.WindowInsets
@@ -19,6 +23,8 @@ import android.widget.ImageView
 import androidx.annotation.Keep
 import androidx.annotation.RequiresApi
 import androidx.core.view.updateLayoutParams
+import androidx.core.view.WindowInsetsCompat
+import org.fcitx.fcitx5.android.R
 import org.fcitx.fcitx5.android.core.CapabilityFlags
 import org.fcitx.fcitx5.android.core.FcitxEvent
 import org.fcitx.fcitx5.android.daemon.FcitxConnection
@@ -137,6 +143,31 @@ class InputView(
     }
 
     private val keyboardPrefs = AppPrefs.getInstance().keyboard
+    private val internalPrefs = AppPrefs.getInstance().internal
+    private var compactPositionX = internalPrefs.compactKeyboardPositionX.getValue()
+    private var compactPositionY = internalPrefs.compactKeyboardPositionY.getValue()
+    private var dragPointerId = MotionEvent.INVALID_POINTER_ID
+    private var dragStartX = 0f
+    private var dragStartY = 0f
+    private var dragKeyboardLeft = 0
+    private var dragKeyboardTop = 0
+    private var dragging = false
+    private val dragTouchSlop = ViewConfiguration.get(context).scaledTouchSlop
+
+    private val dragHandle = view(::View) {
+        val bar = GradientDrawable().apply {
+            shape = GradientDrawable.RECTANGLE
+            cornerRadius = dp(2f)
+            setColor(theme.keyTextColor)
+        }
+        addOnLayoutChangeListener { _, left, _, right, _, _, _, _, _ ->
+            val sideInset = ((right - left - dp(56)) / 2).coerceAtLeast(0)
+            background = InsetDrawable(bar, sideInset, dp(10), sideInset, dp(10))
+        }
+        contentDescription = context.getString(R.string.compact_keyboard_drag_handle)
+        isClickable = true
+        setOnTouchListener { view, event -> onDragHandleTouch(view, event) }
+    }
 
     private val focusChangeResetKeyboard by keyboardPrefs.focusChangeResetKeyboard
 
@@ -158,7 +189,15 @@ class InputView(
         keyboardBottomPadding,
         keyboardBottomPaddingLandscape,
         keyboardHeightPercentBase,
+        keyboardPrefs.compactKeyboardLandscape,
+        keyboardPrefs.compactKeyboardWidth,
+        keyboardPrefs.compactKeyboardHeight,
+        keyboardPrefs.compactKeyboardOnLeft,
     )
+
+    val isCompactKeyboard: Boolean
+        get() = resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE &&
+            keyboardPrefs.compactKeyboardLandscape.getValue()
 
     private val keyboardHeightPx: Int
         get() {
@@ -184,6 +223,7 @@ class InputView(
 
     private val keyboardSidePaddingPx: Int
         get() {
+            if (isCompactKeyboard) return 0
             val value = when (resources.configuration.orientation) {
                 Configuration.ORIENTATION_LANDSCAPE -> keyboardSidePaddingLandscape
                 else -> keyboardSidePadding
@@ -193,6 +233,7 @@ class InputView(
 
     private val keyboardBottomPaddingPx: Int
         get() {
+            if (isCompactKeyboard) return 0
             val value = when (resources.configuration.orientation) {
                 Configuration.ORIENTATION_LANDSCAPE -> keyboardBottomPaddingLandscape
                 else -> keyboardBottomPadding
@@ -202,6 +243,11 @@ class InputView(
 
     @Keep
     private val onKeyboardSizeChangeListener = ManagedPreferenceProvider.OnChangeListener { key ->
+        if (key == keyboardPrefs.compactKeyboardOnLeft.key) {
+            compactPositionX = -1
+            compactPositionY = 1000
+            saveCompactPosition()
+        }
         if (keyboardSizePrefs.any { it.key == key }) {
             updateKeyboardSize()
         }
@@ -248,8 +294,12 @@ class InputView(
                 centerVertically()
                 centerHorizontally()
             })
-            add(kawaiiBar.view, lParams(matchParent, dp(KawaiiBarComponent.HEIGHT)) {
+            add(dragHandle, lParams(matchParent, dp(24)) {
                 topOfParent()
+                centerHorizontally()
+            })
+            add(kawaiiBar.view, lParams(matchParent, dp(KawaiiBarComponent.HEIGHT)) {
+                below(dragHandle)
                 centerHorizontally()
             })
             add(leftPaddingSpace, lParams {
@@ -288,22 +338,22 @@ class InputView(
             keyboardView.clipToOutline = true
         }
 
-        add(preedit.ui.root, lParams(if (preedit.roundedBackground) wrapContent else matchParent, wrapContent) {
+        add(preedit.ui.root, lParams(if (preedit.roundedBackground) wrapContent else 0, wrapContent) {
             above(keyboardView)
+            startToStart = keyboardView.id
+            endToEnd = keyboardView.id
             if (preedit.roundedBackground) {
-                startOfParent()
-                endOfParent()
                 horizontalBias = 0f
                 constrainedWidth = true
                 marginStart = keyboardSidePaddingPx + dp(12)
                 marginEnd = keyboardSidePaddingPx + dp(12)
                 bottomMargin = dp(3)
-            } else {
-                centerHorizontally()
             }
         })
         add(keyboardView, lParams(matchParent, wrapContent) {
-            centerHorizontally()
+            leftToLeft = LayoutParams.PARENT_ID
+            rightToRight = LayoutParams.PARENT_ID
+            topOfParent()
             bottomOfParent()
         })
         updateKeyboardSize()
@@ -316,12 +366,111 @@ class InputView(
         advancedPrefs.registerOnChangeListener(onKeyboardSizeChangeListener)
     }
 
-    private fun updateKeyboardSize() {
-        windowManager.view.updateLayoutParams {
-            height = keyboardHeightPx
+    private var compactInsetLeft = 0
+    private var compactInsetRight = 0
+    private var compactInsetBottom = 0
+    private var compactInsetTop = 0
+    private var navigationBottomInset = 0
+
+    private fun compactHorizontalBias(): Float = if (compactPositionX < 0) {
+        if (keyboardPrefs.compactKeyboardOnLeft.getValue()) 0f else 1f
+    } else compactPositionX.coerceIn(0, 1000) / 1000f
+
+    private fun saveCompactPosition() {
+        internalPrefs.compactKeyboardPositionX.setValue(compactPositionX)
+        internalPrefs.compactKeyboardPositionY.setValue(compactPositionY)
+    }
+
+    private fun onDragHandleTouch(handle: View, event: MotionEvent): Boolean {
+        if (!isCompactKeyboard) return false
+        when (event.actionMasked) {
+            MotionEvent.ACTION_DOWN -> {
+                dragPointerId = event.getPointerId(0)
+                dragStartX = event.rawX
+                dragStartY = event.rawY
+                dragKeyboardLeft = keyboardView.left
+                dragKeyboardTop = keyboardView.top
+                dragging = false
+                popup.dismissAll()
+                handle.parent.requestDisallowInterceptTouchEvent(true)
+            }
+            MotionEvent.ACTION_MOVE -> {
+                val index = event.findPointerIndex(dragPointerId)
+                if (index < 0) return true
+                // Convert the tracked pointer to screen coordinates on API 23+.
+                val dx = event.getX(index) + event.rawX - event.x - dragStartX
+                val dy = event.getY(index) + event.rawY - event.y - dragStartY
+                if (!dragging && kotlin.math.abs(dx) < dragTouchSlop &&
+                    kotlin.math.abs(dy) < dragTouchSlop) return true
+                dragging = true
+                keyboardView.updateLayoutParams<LayoutParams> {
+                    val rangeX = (this@InputView.width - leftMargin - rightMargin - keyboardView.width).coerceAtLeast(0)
+                    val rangeY = (this@InputView.height - topMargin - bottomMargin - keyboardView.height).coerceAtLeast(0)
+                    horizontalBias = if (rangeX == 0) 0f else
+                        ((dragKeyboardLeft + dx - leftMargin) / rangeX).coerceIn(0f, 1f)
+                    verticalBias = if (rangeY == 0) 1f else
+                        ((dragKeyboardTop + dy - topMargin) / rangeY).coerceIn(0f, 1f)
+                }
+            }
+            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                finishDragging(event.actionMasked == MotionEvent.ACTION_UP)
+                if (!dragging && event.actionMasked == MotionEvent.ACTION_UP) handle.performClick()
+                handle.parent.requestDisallowInterceptTouchEvent(false)
+            }
+            MotionEvent.ACTION_POINTER_UP -> {
+                if (event.getPointerId(event.actionIndex) == dragPointerId) finishDragging(true)
+            }
         }
-        bottomPaddingSpace.updateLayoutParams {
+        return true
+    }
+
+    private fun finishDragging(save: Boolean) {
+        if (dragPointerId == MotionEvent.INVALID_POINTER_ID) return
+        dragPointerId = MotionEvent.INVALID_POINTER_ID
+        if (save && dragging) {
+            val params = keyboardView.layoutParams as LayoutParams
+            compactPositionX = (params.horizontalBias * 1000).toInt()
+            compactPositionY = (params.verticalBias * 1000).toInt()
+            saveCompactPosition()
+        } else if (!save) {
+            updateKeyboardSize()
+        }
+    }
+
+    override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
+        super.onSizeChanged(w, h, oldw, oldh)
+        if (w != oldw || h != oldh) updateKeyboardSize()
+    }
+
+    private fun updateKeyboardSize() {
+        popup.dismissAll()
+        val compact = isCompactKeyboard
+        val availableWidth = width.takeIf { it > 0 } ?: resources.displayMetrics.widthPixels
+        val availableHeight = height.takeIf { it > 0 } ?: resources.displayMetrics.heightPixels
+        keyboardView.updateLayoutParams<LayoutParams> {
+            topMargin = if (compact) compactInsetTop + dp(48) else 0
+            leftMargin = if (compact) compactInsetLeft + dp(8) else 0
+            rightMargin = if (compact) compactInsetRight + dp(8) else 0
+            bottomMargin = if (compact) compactInsetBottom + dp(8) else 0
+            width = if (compact) {
+                dp(keyboardPrefs.compactKeyboardWidth.getValue())
+                    .coerceAtMost((availableWidth - leftMargin - rightMargin).coerceAtLeast(0))
+            } else matchParent
+            horizontalBias = if (compact) compactHorizontalBias() else 0f
+            verticalBias = if (compact) compactPositionY.coerceIn(0, 1000) / 1000f else 1f
+        }
+        dragHandle.visibility = if (compact) VISIBLE else GONE
+        windowManager.view.updateLayoutParams {
+            height = if (compact) {
+                val total = (availableHeight * keyboardPrefs.compactKeyboardHeight.getValue() / 100)
+                    .coerceAtLeast(dp(200))
+                    .coerceAtMost((availableHeight - compactInsetTop - compactInsetBottom - dp(64)).coerceAtLeast(0))
+                (total - dp(KawaiiBarComponent.HEIGHT) - dp(24)).coerceAtLeast(0)
+            } else keyboardHeightPx
+        }
+        bottomPaddingSpace.updateLayoutParams<LayoutParams> {
             height = keyboardBottomPaddingPx
+            bottomMargin = if (compact) 0 else navigationBottomInset
         }
         val sidePadding = keyboardSidePaddingPx
         if (sidePadding == 0) {
@@ -359,12 +508,21 @@ class InputView(
             preedit.ui.root.setPadding(sidePadding, 0, sidePadding, 0)
         }
         kawaiiBar.view.setPadding(sidePadding, 0, sidePadding, 0)
+        kawaiiBar.updateCompactKeyboardState(compact)
+        // Layout changes trigger the framework's insets computation as well.
+        requestLayout()
     }
 
     override fun onApplyWindowInsets(insets: WindowInsets): WindowInsets {
-        bottomPaddingSpace.updateLayoutParams<LayoutParams> {
-            bottomMargin = getNavBarBottomInset(insets)
-        }
+        val safeInsets = WindowInsetsCompat.toWindowInsetsCompat(insets).getInsets(
+            WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout()
+        )
+        compactInsetLeft = safeInsets.left
+        compactInsetRight = safeInsets.right
+        compactInsetTop = safeInsets.top
+        compactInsetBottom = safeInsets.bottom
+        navigationBottomInset = getNavBarBottomInset(insets)
+        updateKeyboardSize()
         return insets
     }
 

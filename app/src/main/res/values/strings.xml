@@ -64,6 +64,14 @@
     <string name="clipboard">Clipboard</string>
     <string name="keyboard_height">Keyboard height</string>
     <string name="virtual_keyboard">Virtual Keyboard</string>
+    <string name="compact_keyboard_landscape">Compact keyboard in landscape</string>
+    <string name="compact_keyboard_landscape_summary">Float a smaller keyboard over the app without resizing it. Use the toolbar keyboard button to switch back.</string>
+    <string name="compact_keyboard_width">Compact keyboard width</string>
+    <string name="compact_keyboard_height">Compact keyboard height</string>
+    <string name="compact_keyboard_on_left">Place compact keyboard on the left</string>
+    <string name="compact_keyboard_enable">Switch to compact keyboard</string>
+    <string name="compact_keyboard_disable">Switch to full-width keyboard</string>
+    <string name="compact_keyboard_drag_handle">Drag to move keyboard</string>
     <string name="clipboard_suggestion_timeout">Clipboard suggestion timeout</string>
     <string name="version">Version</string>
     <string name="build_time">Build time</string>

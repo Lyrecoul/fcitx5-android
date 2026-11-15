@@ -36,6 +36,8 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
         val pid = int("pid", 0)
         val editorInfoInspector = bool("editor_info_inspector", false)
         val needNotifications = bool("need_notifications", true)
+        val compactKeyboardPositionX = int("compact_keyboard_position_x", -1)
+        val compactKeyboardPositionY = int("compact_keyboard_position_y", 1000)
     }
 
     inner class Advanced : ManagedPreferenceCategory(R.string.advanced, sharedPreferences) {
@@ -189,6 +191,22 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
             "lang_switch_key_behavior",
             LangSwitchBehavior.Enumerate
         ) { showLangSwitchKey.getValue() }
+
+        val compactKeyboardLandscape = switch(
+            R.string.compact_keyboard_landscape,
+            "compact_keyboard_landscape",
+            true,
+            R.string.compact_keyboard_landscape_summary
+        )
+        val compactKeyboardWidth = int(
+            R.string.compact_keyboard_width, "compact_keyboard_width", 460, 280, 600, "dp", 10
+        ) { compactKeyboardLandscape.getValue() }
+        val compactKeyboardHeight = int(
+            R.string.compact_keyboard_height, "compact_keyboard_height", 40, 20, 50, "%"
+        ) { compactKeyboardLandscape.getValue() }
+        val compactKeyboardOnLeft = switch(
+            R.string.compact_keyboard_on_left, "compact_keyboard_on_left", false
+        ) { compactKeyboardLandscape.getValue() }
 
         val keyboardHeightPercent: ManagedPreference.PInt
         val keyboardHeightPercentLandscape: ManagedPreference.PInt

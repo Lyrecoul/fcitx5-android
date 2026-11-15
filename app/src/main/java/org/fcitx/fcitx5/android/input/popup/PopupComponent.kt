@@ -4,6 +4,7 @@
  */
 package org.fcitx.fcitx5.android.input.popup
 
+import android.content.res.Configuration
 import android.graphics.Rect
 import android.view.View
 import android.view.ViewGroup
@@ -45,13 +46,13 @@ class PopupComponent :
     private val showingContainerUi = HashMap<Int, PopupContainerUi>()
 
     private val keyBottomMargin by lazy {
-        context.dp(ThemeManager.prefs.keyVerticalMargin.getValue())
+        val prefs = ThemeManager.prefs
+        context.dp(if (context.resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) {
+            prefs.keyVerticalMarginLandscape.getValue()
+        } else prefs.keyVerticalMargin.getValue())
     }
     private val popupWidth by lazy {
         context.dp(38)
-    }
-    private val popupHeight by lazy {
-        context.dp(116)
     }
     private val popupKeyHeight by lazy {
         context.dp(48)
@@ -81,23 +82,20 @@ class PopupComponent :
     }
 
     private fun showPopup(viewId: Int, content: String, bounds: Rect) {
-        showingEntryUi[viewId]?.apply {
-            dismissJobs[viewId]?.also {
-                dismissJobs.remove(viewId)?.cancel()
-            }
-            lastShowTime = System.currentTimeMillis()
-            setText(content)
-            return
-        }
-        val popup = (freeEntryUi.poll()
-            ?: PopupEntryUi(context, theme, popupKeyHeight, popupRadius)).apply {
-            lastShowTime = System.currentTimeMillis()
-            setText(content)
-        }
-        popup.root.layoutParams = FrameLayout.LayoutParams(popupWidth, popupHeight).apply {
-            // align popup bottom with key border bottom [^1]
-            topMargin = bounds.bottom - popupHeight - keyBottomMargin
-            leftMargin = (bounds.left + bounds.right - popupWidth) / 2
+        val popup = showingEntryUi[viewId]?.apply {
+            dismissJobs.remove(viewId)?.cancel()
+        } ?: (freeEntryUi.poll()
+            ?: PopupEntryUi(context, theme, popupKeyHeight, popupRadius))
+        popup.lastShowTime = System.currentTimeMillis()
+        popup.setText(content)
+        root.getLocationInWindow(rootLocation)
+        // Keep the label directly above its key, irrespective of keyboard row height.
+        val height = bounds.height() + popupKeyHeight
+        popup.root.layoutParams = FrameLayout.LayoutParams(popupWidth, height).apply {
+            topMargin = (bounds.bottom - height - keyBottomMargin - rootLocation[1])
+                .coerceAtLeast(0)
+            leftMargin = ((bounds.left + bounds.right - popupWidth) / 2 - rootLocation[0])
+                .coerceIn(0, (root.width - popupWidth).coerceAtLeast(0))
         }
         // make sure that popup.root does not have parent view before adding it under root container
         // it's wired that on some devices it would have a parent view despite it was newly created
@@ -142,8 +140,8 @@ class PopupComponent :
             popupRadius,
             popupWidth,
             popupKeyHeight,
-            // position popup keyboard higher, because of [^1]
-            popupHeight + keyBottomMargin,
+            // Match the dynamically sized preview above the trigger key.
+            bounds.height() + popupKeyHeight + keyBottomMargin,
             keys,
             labels
         )

@@ -721,7 +721,22 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
                 } else contentTopInsets
                 // The noninteractive preedit must be visible without moving app content
                 // or intercepting touches in the transparent strip above the keyboard.
-                touchableInsets = Insets.TOUCHABLE_INSETS_CONTENT
+                if (inputView?.isCompactKeyboard == true) {
+                    // A floating keyboard must not resize/pan the game or consume touches
+                    // in the transparent space beside it. Coordinates are window-relative.
+                    contentTopInsets = decorView.height
+                    visibleTopInsets = decorView.height
+                    val keyboard = inputView!!.keyboardView
+                    keyboard.getLocationInWindow(inputViewLocation)
+                    touchableInsets = Insets.TOUCHABLE_INSETS_REGION
+                    touchableRegion.set(
+                        inputViewLocation[0], inputViewLocation[1],
+                        inputViewLocation[0] + keyboard.width,
+                        inputViewLocation[1] + keyboard.height
+                    )
+                } else {
+                    touchableInsets = Insets.TOUCHABLE_INSETS_CONTENT
+                }
             }
         } else {
             val n = decorView.findViewById<View>(android.R.id.navigationBarBackground)?.height ?: 0

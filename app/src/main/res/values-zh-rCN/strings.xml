@@ -64,6 +64,14 @@
     <string name="clipboard">剪贴板</string>
     <string name="keyboard_height">键盘高度</string>
     <string name="virtual_keyboard">虚拟键盘</string>
+    <string name="compact_keyboard_landscape">横屏小键盘</string>
+    <string name="compact_keyboard_landscape_summary">横屏时使用悬浮小键盘，不挤压应用画面。可通过工具栏的键盘按钮切回全宽键盘。</string>
+    <string name="compact_keyboard_width">小键盘宽度</string>
+    <string name="compact_keyboard_height">小键盘高度</string>
+    <string name="compact_keyboard_on_left">小键盘靠左显示</string>
+    <string name="compact_keyboard_enable">切换到小键盘</string>
+    <string name="compact_keyboard_disable">切换到全宽键盘</string>
+    <string name="compact_keyboard_drag_handle">按住拖动键盘</string>
     <string name="clipboard_suggestion_timeout">剪贴板提示超时</string>
     <string name="version">版本</string>
     <string name="build_time">构建时间</string>

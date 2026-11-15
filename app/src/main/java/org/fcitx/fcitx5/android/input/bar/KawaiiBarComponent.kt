@@ -4,6 +4,7 @@
  */
 package org.fcitx.fcitx5.android.input.bar
 
+import android.content.res.Configuration
 import android.os.Build
 import android.util.Size
 import android.view.KeyEvent
@@ -253,6 +254,17 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
         } else false
     }
 
+    fun updateCompactKeyboardState(active: Boolean) {
+        idleUi.buttonsUi.compactKeyboardButton.apply {
+            visibility = if (context.resources.configuration.orientation ==
+                Configuration.ORIENTATION_LANDSCAPE) View.VISIBLE else View.GONE
+            isSelected = active
+            contentDescription = context.getString(
+                if (active) R.string.compact_keyboard_disable else R.string.compact_keyboard_enable
+            )
+        }
+    }
+
     private var voiceInputSubtype: Pair<String, InputMethodSubtype>? = null
 
     private val switchToVoiceInputCallback = View.OnClickListener {
@@ -301,6 +313,10 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
                 }
                 clipboardButton.setOnClickListener {
                     windowManager.attachWindow(ClipboardWindow())
+                }
+                compactKeyboardButton.setOnClickListener {
+                    val preference = prefs.keyboard.compactKeyboardLandscape
+                    preference.setValue(!preference.getValue())
                 }
                 moreButton.setOnClickListener {
                     windowManager.attachWindow(StatusAreaWindow())
