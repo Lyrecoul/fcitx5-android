@@ -1,10 +1,11 @@
 /*
  * SPDX-License-Identifier: LGPL-2.1-or-later
- * SPDX-FileCopyrightText: Copyright 2024-2025 Fcitx5 for Android Contributors
+ * SPDX-FileCopyrightText: Copyright 2024-2026 Fcitx5 for Android Contributors
  */
 
 package org.fcitx.fcitx5.android.input
 
+import android.content.res.Configuration
 import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.View
@@ -66,6 +67,20 @@ class InputDeviceManager(private val onChange: (Boolean) -> Unit) {
 
     private var candidatesViewMode by AppPrefs.getInstance().candidates.mode
 
+    private fun hasHardwareKeyboard(config: Configuration): Boolean {
+        return config.keyboard != Configuration.KEYBOARD_NOKEYS &&
+                config.keyboard != Configuration.KEYBOARD_UNDEFINED &&
+                config.hardKeyboardHidden != Configuration.HARDKEYBOARDHIDDEN_YES
+    }
+
+    fun evaluateOnConfigurationChanged(config: Configuration, service: FcitxInputMethodService) {
+        isVirtualKeyboard = when (candidatesViewMode) {
+            FloatingCandidatesMode.SystemDefault -> service.superEvaluateInputViewShown()
+            FloatingCandidatesMode.InputDevice -> !hasHardwareKeyboard(config)
+            FloatingCandidatesMode.Disabled -> true
+        }
+    }
+
     fun notifyOnStartInput(attribute: EditorInfo) {
         isNullInputType = attribute.isTypeNull()
     }
@@ -78,7 +93,8 @@ class InputDeviceManager(private val onChange: (Boolean) -> Unit) {
         isNullInputType = info.isTypeNull()
         isVirtualKeyboard = when (candidatesViewMode) {
             FloatingCandidatesMode.SystemDefault -> service.superEvaluateInputViewShown()
-            FloatingCandidatesMode.InputDevice -> isVirtualKeyboard
+            FloatingCandidatesMode.InputDevice ->
+                !hasHardwareKeyboard(service.resources.configuration) && isVirtualKeyboard
             FloatingCandidatesMode.Disabled -> true
         }
         return isVirtualKeyboard
@@ -119,7 +135,8 @@ class InputDeviceManager(private val onChange: (Boolean) -> Unit) {
         if (!startedInputView) return
         isVirtualKeyboard = when (candidatesViewMode) {
             FloatingCandidatesMode.SystemDefault -> service.superEvaluateInputViewShown()
-            else -> true
+            FloatingCandidatesMode.InputDevice -> !hasHardwareKeyboard(service.resources.configuration)
+            FloatingCandidatesMode.Disabled -> true
         }
     }
 
@@ -128,8 +145,10 @@ class InputDeviceManager(private val onChange: (Boolean) -> Unit) {
         isVirtualKeyboard = when (candidatesViewMode) {
             FloatingCandidatesMode.SystemDefault -> service.superEvaluateInputViewShown()
             FloatingCandidatesMode.InputDevice ->
-                // switch to virtual keyboard on touch screen events, otherwise preserve current mode
-                if (toolType == MotionEvent.TOOL_TYPE_FINGER || toolType == MotionEvent.TOOL_TYPE_STYLUS) true else isVirtualKeyboard
+                // Touch must not reopen the software panel while hardware is available.
+                !hasHardwareKeyboard(service.resources.configuration) &&
+                        (toolType == MotionEvent.TOOL_TYPE_FINGER ||
+                                toolType == MotionEvent.TOOL_TYPE_STYLUS || isVirtualKeyboard)
             FloatingCandidatesMode.Disabled -> true
         }
     }

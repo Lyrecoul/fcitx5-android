@@ -229,7 +229,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
         super.onCreate()
         decorView = window.window!!.decorView
         contentView = decorView.findViewById(android.R.id.content)
-        lastKnownConfig = resources.configuration
+        lastKnownConfig = Configuration(resources.configuration)
     }
 
     private fun handleFcitxEvent(event: FcitxEvent<*>) {
@@ -649,7 +649,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
     override fun onConfigurationChanged(newConfig: Configuration) {
         postFcitxJob { reset() }
         /**
-         * skip keyboard|keyboardHidden changes, because we have [inputDeviceMgr]
+         * handle keyboard|keyboardHidden changes through [inputDeviceMgr] without recreating views
          * skip uiMode (system light/dark mode) changes, because we have [onThemeChangeListener]
          * to replace InputView(s) when needed
          * [android.inputmethodservice.InputMethodService.onConfigurationChanged] would call
@@ -669,7 +669,10 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
         if (diff and f != diff) {
             super.onConfigurationChanged(newConfig)
         }
-        lastKnownConfig = newConfig
+        lastKnownConfig = Configuration(newConfig)
+        if (diff and (ActivityInfo.CONFIG_KEYBOARD or ActivityInfo.CONFIG_KEYBOARD_HIDDEN) != 0) {
+            inputDeviceMgr.evaluateOnConfigurationChanged(newConfig, this)
+        }
     }
 
     override fun onWindowShown() {

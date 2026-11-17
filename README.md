@@ -152,6 +152,25 @@ Key previews use current window coordinates on every press, including after
 dragging, and place their labels immediately above the pressed key using its
 actual row height rather than a fixed-height offset.
 
+### Physical keyboards
+
+With **Candidates window → Show candidates window → Follow input device**
+(the default), an available physical keyboard hides the software keyboard panel
+as soon as an editor opens. Clicking the editor or using a finger/stylus keeps
+the large panel hidden; floating candidates remain available without reserving
+keyboard space in the app. Disconnecting or folding away the physical keyboard
+restores the software panel. **System default** follows Android's keyboard
+visibility setting; **Disabled** retains the software panel.
+
+The device regression requires an available QWERTY hardware keyboard (the local
+emulator provides one):
+
+```sh
+adb shell am instrument --no-hidden-api-checks -w \
+  -e class org.fcitx.fcitx5.android.HardwareKeyboardPanelTest \
+  org.fcitx.fcitx5.android.debug.test/androidx.test.runner.AndroidJUnitRunner
+```
+
 ### Automatic Chinese/Latin spacing
 
 **Settings → Advanced → Automatic Chinese/Latin spacing** applies to candidate
