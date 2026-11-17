@@ -5,7 +5,6 @@
 package org.fcitx.fcitx5.android.ui.main.settings.theme
 
 import android.annotation.SuppressLint
-import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
@@ -20,18 +19,20 @@ import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import android.webkit.MimeTypeMap
-import android.widget.SeekBar
 import androidx.activity.addCallback
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContract
 import androidx.annotation.StringRes
 import androidx.appcompat.app.AppCompatActivity
-import androidx.appcompat.widget.Toolbar
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updateLayoutParams
 import androidx.lifecycle.lifecycleScope
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.android.material.appbar.MaterialToolbar
+import com.google.android.material.materialswitch.MaterialSwitch
+import com.google.android.material.slider.Slider
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.parcelize.Parcelize
@@ -53,7 +54,6 @@ import splitties.resources.styledColor
 import splitties.resources.styledDrawable
 import splitties.views.backgroundColor
 import splitties.views.bottomPadding
-import splitties.views.dsl.appcompat.switch
 import splitties.views.dsl.constraintlayout.above
 import splitties.views.dsl.constraintlayout.before
 import splitties.views.dsl.constraintlayout.below
@@ -69,7 +69,6 @@ import splitties.views.dsl.constraintlayout.topOfParent
 import splitties.views.dsl.constraintlayout.topToTopOf
 import splitties.views.dsl.core.add
 import splitties.views.dsl.core.matchParent
-import splitties.views.dsl.core.seekBar
 import splitties.views.dsl.core.textView
 import splitties.views.dsl.core.view
 import splitties.views.dsl.core.wrapContent
@@ -104,9 +103,8 @@ class CustomThemeActivity : AppCompatActivity() {
     }
 
     private val toolbar by lazy {
-        view(::Toolbar) {
-            backgroundColor = styledColor(android.R.attr.colorPrimary)
-            elevation = dp(4f)
+        view(::MaterialToolbar) {
+            backgroundColor = styledColor(com.google.android.material.R.attr.colorSurface)
         }
     }
 
@@ -128,7 +126,7 @@ class CustomThemeActivity : AppCompatActivity() {
         createTextView(R.string.dark_keys, ripple = true)
     }
     private val variantSwitch by lazy {
-        switch {
+        view(::MaterialSwitch) {
             // Use dark keys by default
             isChecked = false
         }
@@ -141,8 +139,10 @@ class CustomThemeActivity : AppCompatActivity() {
         createTextView()
     }
     private val brightnessSeekBar by lazy {
-        seekBar {
-            max = 100
+        view(::Slider) {
+            valueFrom = 0f
+            valueTo = 100f
+            stepSize = 1f
         }
     }
 
@@ -244,7 +244,7 @@ class CustomThemeActivity : AppCompatActivity() {
             theme.name,
             background.croppedFilePath,
             background.srcFilePath,
-            brightnessSeekBar.progress,
+            brightnessSeekBar.value.toInt(),
             background.cropRect,
             background.cropRotation
         )
@@ -302,7 +302,7 @@ class CustomThemeActivity : AppCompatActivity() {
         supportActionBar!!.setDisplayHomeAsUpEnabled(true)
         setContentView(ui)
         whenHasBackground { background ->
-            brightnessSeekBar.progress = background.brightness
+            brightnessSeekBar.value = background.brightness.toFloat()
             variantSwitch.isChecked = !theme.isDark
             launcher = registerForActivityResult(CropContract()) {
                 when (it) {
@@ -337,15 +337,9 @@ class CustomThemeActivity : AppCompatActivity() {
             variantSwitch.setOnCheckedChangeListener { _, isChecked ->
                 setKeyVariant(background, darkKeys = isChecked)
             }
-            brightnessSeekBar.setOnSeekBarChangeListener(object :
-                SeekBar.OnSeekBarChangeListener {
-                override fun onStartTrackingTouch(bar: SeekBar) {}
-                override fun onStopTrackingTouch(bar: SeekBar) {}
-
-                override fun onProgressChanged(bar: SeekBar, progress: Int, fromUser: Boolean) {
-                    if (fromUser) updateState()
-                }
-            })
+            brightnessSeekBar.addOnChangeListener { _, _, fromUser ->
+                if (fromUser) updateState()
+            }
         }
 
         if (newCreated) {
@@ -384,7 +378,7 @@ class CustomThemeActivity : AppCompatActivity() {
 
     @SuppressLint("SetTextI18n")
     private fun BackgroundStates.updateState() {
-        val progress = brightnessSeekBar.progress
+        val progress = brightnessSeekBar.value.toInt()
         brightnessValue.text = "$progress%"
         filteredDrawable.colorFilter = DarkenColorFilter(100 - progress)
         previewUi.setBackground(filteredDrawable)
@@ -426,7 +420,7 @@ class CustomThemeActivity : AppCompatActivity() {
                     whenHasBackground {
                         newTheme = theme.copy(
                             backgroundImage = it.copy(
-                                brightness = brightnessSeekBar.progress,
+                                brightness = brightnessSeekBar.value.toInt(),
                                 cropRect = cropRect,
                                 cropRotation = cropRotation
                             )
@@ -455,7 +449,7 @@ class CustomThemeActivity : AppCompatActivity() {
     }
 
     private fun promptDelete() {
-        AlertDialog.Builder(this)
+        MaterialAlertDialogBuilder(this)
             .setTitle(R.string.delete_theme)
             .setMessage(getString(R.string.delete_theme_msg, theme.name))
             .setPositiveButton(android.R.string.ok) { _, _ ->
@@ -472,7 +466,7 @@ class CustomThemeActivity : AppCompatActivity() {
                 promptDelete()
             }
         }
-        val iconTint = styledColor(android.R.attr.colorControlNormal)
+        val iconTint = styledColor(com.google.android.material.R.attr.colorOnSurfaceVariant)
         menu.item(R.string.save, R.drawable.ic_baseline_check_24, iconTint, true) {
             done()
         }

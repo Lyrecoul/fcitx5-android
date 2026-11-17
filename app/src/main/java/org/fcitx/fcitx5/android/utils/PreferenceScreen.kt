@@ -40,7 +40,7 @@ fun Preference.setup(
         isIconSpaceReserved = false
     } else {
         setIcon(context.drawable(icon)?.apply {
-            setTint(context.styledColor(android.R.attr.colorControlNormal))
+            setTint(context.styledColor(com.google.android.material.R.attr.colorOnSurfaceVariant))
         })
     }
     onClick?.also {

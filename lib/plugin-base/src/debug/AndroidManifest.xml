@@ -22,7 +22,7 @@
             android:name=".AboutActivity"
             android:directBootAware="true"
             android:exported="true"
-            android:theme="@style/DeviceSettingsTheme"
+            android:theme="@style/Theme.FcitxPluginAbout"
             tools:targetApi="24">
             <intent-filter tools:node="remove">
                 <action android:name="org.fcitx.fcitx5.android.plugin.MANIFEST" />

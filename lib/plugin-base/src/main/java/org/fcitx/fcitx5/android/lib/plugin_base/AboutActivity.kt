@@ -3,50 +3,70 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
-@file:Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
-
 package org.fcitx.fcitx5.android.lib.plugin_base
 
 import android.annotation.SuppressLint
-import android.app.AlertDialog
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Intent
 import android.net.Uri
-import android.os.Build
 import android.os.Bundle
-import android.preference.Preference
-import android.preference.Preference.OnPreferenceClickListener
-import android.preference.PreferenceActivity
-import android.preference.PreferenceCategory
-import android.preference.PreferenceFragment
-import android.preference.PreferenceScreen
 import android.provider.Settings
-import android.view.LayoutInflater
 import android.view.Menu
 import android.view.View
-import android.view.ViewGroup
-import android.view.WindowInsets
-import android.widget.ListView
 import android.widget.Toast
+import androidx.activity.enableEdgeToEdge
+import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.doOnAttach
+import androidx.core.view.updatePadding
+import androidx.preference.Preference
+import androidx.preference.Preference.OnPreferenceClickListener
+import androidx.preference.PreferenceCategory
+import androidx.preference.PreferenceFragmentCompat
+import androidx.preference.PreferenceScreen
+import com.google.android.material.appbar.MaterialToolbar
+import com.google.android.material.color.DynamicColors
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.mikepenz.aboutlibraries.Libs
 import com.mikepenz.aboutlibraries.entity.License
 import org.xmlpull.v1.XmlPullParser
 import kotlin.math.max
 
-class AboutActivity : PreferenceActivity() {
-
-    // disallow loading any external fragment
-    override fun isValidFragment(fragmentName: String?) = false
+class AboutActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        DynamicColors.applyToActivityIfAvailable(this)
         super.onCreate(savedInstanceState)
-        actionBar?.setDisplayHomeAsUpEnabled(true)
-        fragmentManager.beginTransaction()
-            .replace(android.R.id.content, AboutContentFragment())
-            .commit()
+        enableEdgeToEdge()
+        setContentView(R.layout.activity_plugin_about)
+        val root = findViewById<View>(R.id.plugin_about_root)
+        val toolbar = findViewById<MaterialToolbar>(R.id.plugin_about_toolbar)
+        ViewCompat.setOnApplyWindowInsetsListener(root) { view, insets ->
+            val bars = insets.getInsets(
+                WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout()
+            )
+            view.updatePadding(left = bars.left, right = bars.right)
+            toolbar.updatePadding(top = bars.top)
+            insets
+        }
+        root.doOnAttach { ViewCompat.requestApplyInsets(it) }
+        setSupportActionBar(toolbar)
+        supportActionBar?.setDisplayHomeAsUpEnabled(true)
+        if (savedInstanceState == null) {
+            supportFragmentManager.beginTransaction()
+                .replace(R.id.plugin_about_content, AboutContentFragment())
+                .commit()
+        }
     }
 
+    override fun onSupportNavigateUp(): Boolean {
+        onBackPressedDispatcher.onBackPressed()
+        return true
+    }
+
+    @Suppress("DEPRECATION")
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menu.add(R.string.app_info).setOnMenuItemClickListener {
             startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
@@ -63,12 +83,12 @@ class AboutActivity : PreferenceActivity() {
         return super.onCreateOptionsMenu(menu)
     }
 
-    class AboutContentFragment : PreferenceFragment() {
+    class AboutContentFragment : PreferenceFragmentCompat() {
 
         private val copyPreferenceSummaryListener = OnPreferenceClickListener {
-            context.getSystemService(ClipboardManager::class.java)
+            it.context.getSystemService(ClipboardManager::class.java)
                 .setPrimaryClip(ClipData.newPlainText("", it.summary))
-            Toast.makeText(context, R.string.copied, Toast.LENGTH_SHORT).show()
+            Toast.makeText(it.context, R.string.copied, Toast.LENGTH_SHORT).show()
             true
         }
 
@@ -78,6 +98,7 @@ class AboutActivity : PreferenceActivity() {
         ) {
             PreferenceCategory(context).also {
                 it.title = getString(title)
+                it.isIconSpaceReserved = false
                 addPreference(it)
                 init.invoke(it)
             }
@@ -91,10 +112,9 @@ class AboutActivity : PreferenceActivity() {
             addPreference(Preference(context).apply {
                 setTitle(title)
                 setSummary(summary)
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    isSingleLineTitle = false
-                    isIconSpaceReserved = false
-                }
+                isSingleLineTitle = false
+                isIconSpaceReserved = false
+                isPersistent = false
                 onPreferenceClickListener = onClick ?: copyPreferenceSummaryListener
             })
         }
@@ -108,36 +128,40 @@ class AboutActivity : PreferenceActivity() {
         }
 
         @SuppressLint("DiscouragedApi")
-        override fun onCreate(savedInstanceState: Bundle?) {
-            super.onCreate(savedInstanceState)
+        override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
+            // The debug About activity is also available before the user unlocks the device.
+            preferenceManager.setStorageDeviceProtected()
+            val context = preferenceManager.context
             val screen = preferenceManager.createPreferenceScreen(context)
+            preferenceScreen = screen
             val pkg = context.packageName
             val pluginXmlRes = resources.getIdentifier("plugin", "xml", pkg)
             if (pluginXmlRes == 0) return
-            val parser = resources.getXml(pluginXmlRes)
-            var eventType = parser.eventType
             var gettextDomain = ""
             var apiVersion = ""
             var description = ""
-            var text = ""
             var hasService = false
-            while ((eventType != XmlPullParser.END_DOCUMENT)) {
-                when (eventType) {
-                    XmlPullParser.TEXT -> text = parser.text
-                    XmlPullParser.END_TAG -> when (parser.name) {
-                        "apiVersion" -> apiVersion = text
-                        "domain" -> gettextDomain = text
-                        "description" -> description = text.let {
-                            if (it.startsWith("@string/")) {
-                                val resName = it.removePrefix("@string/")
-                                val resId = resources.getIdentifier(resName, "string", pkg)
-                                if (resId != 0) getString(resId) else it
-                            } else it
+            resources.getXml(pluginXmlRes).use { parser ->
+                var eventType = parser.eventType
+                var text = ""
+                while (eventType != XmlPullParser.END_DOCUMENT) {
+                    when (eventType) {
+                        XmlPullParser.TEXT -> text = parser.text
+                        XmlPullParser.END_TAG -> when (parser.name) {
+                            "apiVersion" -> apiVersion = text
+                            "domain" -> gettextDomain = text
+                            "description" -> description = text.let {
+                                if (it.startsWith("@string/")) {
+                                    val resName = it.removePrefix("@string/")
+                                    val resId = resources.getIdentifier(resName, "string", pkg)
+                                    if (resId != 0) getString(resId) else it
+                                } else it
+                            }
+                            "hasService" -> hasService = text.lowercase() == "true"
                         }
-                        "hasService" -> hasService = text.lowercase() == "true"
                     }
+                    eventType = parser.next()
                 }
-                eventType = parser.next()
             }
             screen.addCategory(R.string.plugin_info) {
                 addPreference(R.string.pkg_name, pkg)
@@ -171,33 +195,22 @@ class AboutActivity : PreferenceActivity() {
                     }
                 }
             }
-            preferenceScreen = screen
         }
 
-        override fun onCreateView(
-            inflater: LayoutInflater?,
-            container: ViewGroup?,
-            savedInstanceState: Bundle?
-        ): View? {
-            val view = super.onCreateView(inflater, container, savedInstanceState)
-            // 35+ forces edge-to-edge
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM && view != null) {
-                val listView = view.findViewById<ListView>(android.R.id.list)
-                listView.clipToPadding = false
-                listView.setOnApplyWindowInsetsListener { v, insets ->
-                    val status = insets.getInsets(WindowInsets.Type.statusBars())
-                    val navbar = insets.getInsets(WindowInsets.Type.navigationBars())
-                    val gesture = insets.getInsets(WindowInsets.Type.mandatorySystemGestures())
-                    v.setPadding(
-                        v.paddingLeft,
-                        status.top,
-                        v.paddingRight,
-                        max(navbar.bottom, gesture.bottom)
-                    )
-                    insets
-                }
+        override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+            super.onViewCreated(view, savedInstanceState)
+            val list = listView
+            val bottomPadding = list.paddingBottom
+            list.clipToPadding = false
+            ViewCompat.setOnApplyWindowInsetsListener(list) { recyclerView, insets ->
+                val bars = insets.getInsets(
+                    WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout()
+                )
+                val gestures = insets.getInsets(WindowInsetsCompat.Type.mandatorySystemGestures())
+                recyclerView.updatePadding(bottom = bottomPadding + max(bars.bottom, gestures.bottom))
+                insets
             }
-            return view
+            list.doOnAttach { ViewCompat.requestApplyInsets(it) }
         }
 
         private fun showLicenseDialog(uniqueId: String, licenses: Set<License>): Boolean {
@@ -207,7 +220,7 @@ class AboutActivity : PreferenceActivity() {
                 else -> {
                     val licenseArray = licenses.toTypedArray()
                     val licenseNames = licenseArray.map { it.spdxId ?: it.name }.toTypedArray()
-                    AlertDialog.Builder(context)
+                    MaterialAlertDialogBuilder(requireContext())
                         .setTitle(uniqueId)
                         .setItems(licenseNames) { _, idx ->
                             showLicenseContent(licenseArray[idx])

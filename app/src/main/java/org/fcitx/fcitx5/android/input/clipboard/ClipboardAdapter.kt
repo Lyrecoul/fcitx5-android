@@ -15,7 +15,7 @@ import org.fcitx.fcitx5.android.data.clipboard.db.ClipboardEntry
 import org.fcitx.fcitx5.android.data.theme.Theme
 import org.fcitx.fcitx5.android.utils.DeviceUtil
 import org.fcitx.fcitx5.android.utils.item
-import splitties.resources.styledColor
+import splitties.resources.styledColorSL
 import kotlin.math.min
 
 abstract class ClipboardAdapter(
@@ -98,7 +98,7 @@ abstract class ClipboardAdapter(
             root.setOnLongClickListener {
                 val popup = PopupMenu(ctx, root)
                 val menu = popup.menu
-                val iconTint = ctx.styledColor(android.R.attr.colorControlNormal)
+                val iconTint = ctx.styledColorSL(android.R.attr.colorControlNormal).defaultColor
                 if (entry.pinned) {
                     menu.item(R.string.unpin, R.drawable.ic_outline_push_pin_24, iconTint) {
                         onUnpin(entry.id)

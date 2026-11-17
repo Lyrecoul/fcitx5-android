@@ -37,13 +37,13 @@ class TableFilesSelectionUi(override val ctx: Context) : Ui {
 
         val title = textView {
             textAppearance = ctx.resolveThemeAttribute(android.R.attr.textAppearanceListItem)
-            setTextColor(styledColor(android.R.attr.textColorPrimary))
+            setTextColor(styledColor(com.google.android.material.R.attr.colorOnSurface))
             setText(titleRes)
         }
 
         val summary = textView {
             textAppearance = ctx.resolveThemeAttribute(android.R.attr.textAppearanceSmall)
-            setTextColor(styledColor(android.R.attr.textColorSecondary))
+            setTextColor(styledColor(com.google.android.material.R.attr.colorOnSurfaceVariant))
             setText(R.string.table_file_placeholder)
         }
 

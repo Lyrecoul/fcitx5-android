@@ -4,7 +4,6 @@
  */
 package org.fcitx.fcitx5.android.ui.main.settings
 
-import android.app.AlertDialog
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -12,6 +11,7 @@ import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.Lifecycle
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import org.fcitx.fcitx5.android.core.Key
 import org.fcitx.fcitx5.android.core.RawConfig
 import org.fcitx.fcitx5.android.ui.common.BaseDynamicListUi
@@ -103,7 +103,7 @@ class ListFragment : Fragment() {
                                 block: (Key) -> Unit
                             ) {
                                 val ui = KeyPreferenceUi(ctx).apply { setKey(entry ?: Key.None) }
-                                AlertDialog.Builder(context)
+                                MaterialAlertDialogBuilder(ctx)
                                     .setTitle(title)
                                     .setView(ui.root)
                                     .setPositiveButton(android.R.string.ok) { _, _ ->

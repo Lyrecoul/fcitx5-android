@@ -7,14 +7,13 @@ package org.fcitx.fcitx5.android.ui.main.settings
 import android.content.Context
 import android.util.AttributeSet
 import android.view.View
-import android.widget.SeekBar
 import android.widget.TextView
-import androidx.appcompat.app.AlertDialog
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.content.edit
 import androidx.preference.DialogPreference
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.android.material.slider.Slider
 import org.fcitx.fcitx5.android.R
-import org.fcitx.fcitx5.android.utils.setOnChangeListener
 import splitties.dimensions.dp
 import splitties.resources.resolveThemeAttribute
 import splitties.views.dsl.constraintlayout.below
@@ -27,9 +26,9 @@ import splitties.views.dsl.constraintlayout.startOfParent
 import splitties.views.dsl.constraintlayout.topOfParent
 import splitties.views.dsl.core.add
 import splitties.views.dsl.core.horizontalMargin
-import splitties.views.dsl.core.seekBar
 import splitties.views.dsl.core.textView
 import splitties.views.dsl.core.verticalMargin
+import splitties.views.dsl.core.view
 import splitties.views.dsl.core.wrapContent
 import splitties.views.textAppearance
 
@@ -93,12 +92,12 @@ class TwinSeekBarPreference @JvmOverloads constructor(
         showDialog()
     }
 
-    private fun ConstraintLayout.addSeekBar(
+    private fun ConstraintLayout.addSlider(
         label: String,
         initialValue: Int,
         defaultValue: Int? = null,
         belowView: View? = null
-    ): SeekBar {
+    ): Slider {
         val textLabel = textView {
             text = label
             textAppearance = context.resolveThemeAttribute(android.R.attr.textAppearanceListItem)
@@ -107,15 +106,20 @@ class TwinSeekBarPreference @JvmOverloads constructor(
             text = textForValue(initialValue, defaultValue)
             textAppearance = context.resolveThemeAttribute(android.R.attr.textAppearanceListItem)
         }
-        val seekBar = seekBar {
-            max = progressForValue(this@TwinSeekBarPreference.max)
-            progress = progressForValue(initialValue)
-            setOnChangeListener {
-                valueLabel.text = textForValue(valueForProgress(it), defaultValue)
+        val maxProgress = progressForValue(max).coerceAtLeast(0)
+        val slider = view(::Slider) {
+            valueFrom = 0f
+            // Material requires a non-empty range, even when there is only one valid value.
+            valueTo = maxProgress.coerceAtLeast(1).toFloat()
+            stepSize = 1f
+            value = progressForValue(initialValue).coerceIn(0, maxProgress).toFloat()
+            isEnabled = maxProgress > 0
+            addOnChangeListener { _, progress, _ ->
+                valueLabel.text = textForValue(valueForProgress(progress.toInt()), defaultValue)
             }
         }
         val textMargin = dp(24)
-        val seekBarMargin = dp(10)
+        val sliderMargin = dp(10)
         add(textLabel, lParams(wrapContent, wrapContent) {
             if (belowView == null) topOfParent(textMargin)
             else below(belowView, textMargin)
@@ -126,17 +130,17 @@ class TwinSeekBarPreference @JvmOverloads constructor(
             else below(belowView, textMargin)
             endOfParent(textMargin)
         })
-        add(seekBar, lParams(matchConstraints, wrapContent) {
-            below(valueLabel, seekBarMargin)
-            centerHorizontally(seekBarMargin)
+        add(slider, lParams(matchConstraints, wrapContent) {
+            below(valueLabel, sliderMargin)
+            centerHorizontally(sliderMargin)
         })
-        return seekBar
+        return slider
     }
 
     private fun showDialog() {
         var messageText: TextView? = null
-        val primarySeekBar: SeekBar
-        val secondarySeekBar: SeekBar
+        val primarySlider: Slider
+        val secondarySlider: Slider
         val dialogContent = context.constraintLayout {
             if (dialogMessage != null) {
                 messageText = textView { text = dialogMessage }
@@ -145,15 +149,15 @@ class TwinSeekBarPreference @JvmOverloads constructor(
                     horizontalMargin = dp(24)
                 })
             }
-            primarySeekBar = addSeekBar(label, value, default, messageText)
-            secondarySeekBar = addSeekBar(secondaryLabel, secondaryValue, secondaryDefault, primarySeekBar)
+            primarySlider = addSlider(label, value, default, messageText)
+            secondarySlider = addSlider(secondaryLabel, secondaryValue, secondaryDefault, primarySlider)
         }
-        AlertDialog.Builder(context)
+        MaterialAlertDialogBuilder(context)
             .setTitle(this@TwinSeekBarPreference.dialogTitle)
             .setView(dialogContent)
             .setPositiveButton(android.R.string.ok) { _, _ ->
-                val primary = valueForProgress(primarySeekBar.progress)
-                val secondary = valueForProgress(secondarySeekBar.progress)
+                val primary = valueForProgress(primarySlider.value.toInt())
+                val secondary = valueForProgress(secondarySlider.value.toInt())
                 setValue(primary, secondary)
             }
             .setNeutralButton(R.string.default_) { _, _ ->

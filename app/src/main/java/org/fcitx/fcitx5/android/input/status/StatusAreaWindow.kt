@@ -37,7 +37,7 @@ import org.fcitx.fcitx5.android.utils.DeviceUtil
 import org.fcitx.fcitx5.android.utils.alpha
 import org.mechdancer.dependency.manager.must
 import splitties.dimensions.dp
-import splitties.resources.styledColor
+import splitties.resources.styledColorSL
 import splitties.views.backgroundColor
 import splitties.views.dsl.core.add
 import splitties.views.dsl.core.horizontalLayout
@@ -114,7 +114,7 @@ class StatusAreaWindow : InputWindow.ExtendedInputWindow<StatusAreaWindow>(),
                                     groupId++
                                 } else {
                                     val dividerString = buildSpannedString {
-                                        color(context.styledColor(android.R.attr.colorForeground).alpha(0.4f)) {
+                                        color(context.styledColorSL(android.R.attr.colorForeground).defaultColor.alpha(0.4f)) {
                                             append("──────────")
                                         }
                                     }

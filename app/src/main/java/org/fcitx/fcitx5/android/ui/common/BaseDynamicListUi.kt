@@ -5,7 +5,6 @@
 package org.fcitx.fcitx5.android.ui.common
 
 import android.annotation.SuppressLint
-import android.app.AlertDialog
 import android.content.Context
 import android.view.View
 import android.view.ViewGroup
@@ -23,9 +22,11 @@ import androidx.core.widget.addTextChangedListener
 import androidx.recyclerview.widget.ItemTouchHelper
 import arrow.core.identity
 import com.google.android.material.behavior.HideViewOnScrollBehavior
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.android.material.snackbar.Snackbar
 import org.fcitx.fcitx5.android.R
+import org.fcitx.fcitx5.android.utils.materialTextInput
 import org.fcitx.fcitx5.android.utils.onPositiveButtonClick
 import org.fcitx.fcitx5.android.utils.str
 import splitties.dimensions.dp
@@ -43,7 +44,6 @@ import splitties.views.dsl.coordinatorlayout.coordinatorLayout
 import splitties.views.dsl.coordinatorlayout.defaultLParams
 import splitties.views.dsl.core.Ui
 import splitties.views.dsl.core.add
-import splitties.views.dsl.core.editText
 import splitties.views.dsl.core.margin
 import splitties.views.dsl.core.matchParent
 import splitties.views.dsl.core.view
@@ -75,7 +75,7 @@ abstract class BaseDynamicListUi<T>(
 
     protected val fab = view(::FloatingActionButton) {
         imageDrawable = drawable(R.drawable.ic_baseline_plus_24)!!.apply {
-            setTint(styledColor(android.R.attr.colorForegroundInverse))
+            setTint(styledColor(com.google.android.material.R.attr.colorOnPrimaryContainer))
         }
     }
 
@@ -191,7 +191,7 @@ abstract class BaseDynamicListUi<T>(
                     fab.show()
                     fab.setOnClickListener {
                         val items = candidatesSource.map { showEntry(it) }.toTypedArray()
-                        AlertDialog.Builder(ctx)
+                        MaterialAlertDialogBuilder(ctx)
                             .setTitle(R.string.add)
                             .setItems(items) { _, which -> addItem(item = candidatesSource[which]) }
                             .show()
@@ -234,15 +234,15 @@ abstract class BaseDynamicListUi<T>(
         block: (T) -> Unit
     ) {
         if (mode !is Mode.FreeAdd) return
-        val editText = editText {
+        val (inputLayout, editText) = materialTextInput {
             hint = mode.hint
-            if (entry != null) {
-                setText(showEntry(entry))
-            }
-            addTextChangedListener { error = null }
         }
+        if (entry != null) {
+            editText.setText(showEntry(entry))
+        }
+        editText.addTextChangedListener { inputLayout.error = null }
         val layout = constraintLayout {
-            add(editText, lParams {
+            add(inputLayout, lParams {
                 height = wrapContent
                 width = matchParent
                 topOfParent()
@@ -251,7 +251,7 @@ abstract class BaseDynamicListUi<T>(
                 rightOfParent(dp(20))
             })
         }
-        AlertDialog.Builder(ctx)
+        MaterialAlertDialogBuilder(ctx)
             .setTitle(title)
             .setView(layout)
             .setPositiveButton(android.R.string.ok, null)
@@ -260,11 +260,11 @@ abstract class BaseDynamicListUi<T>(
             .onPositiveButtonClick {
                 val str = editText.str
                 if (mode.validator(str)) {
-                    editText.error = null
+                    inputLayout.error = null
                     block(mode.converter(str))
                     true
                 } else {
-                    editText.error = ctx.getString(R.string.invalid_value)
+                    inputLayout.error = ctx.getString(R.string.invalid_value)
                     false
                 }
             }

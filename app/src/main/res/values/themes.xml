@@ -1,7 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources xmlns:tools="http://schemas.android.com/tools">
+<resources>
 
-    <style name="Theme.FcitxAppTheme" parent="Theme.AppCompat.Light.NoActionBar">
+    <style name="Base.FcitxAppTheme" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/md_theme_primary</item>
+        <item name="colorOnPrimary">@color/md_theme_on_primary</item>
+        <item name="colorPrimaryContainer">@color/md_theme_primary_container</item>
+        <item name="colorOnPrimaryContainer">@color/md_theme_on_primary_container</item>
+        <item name="colorSecondary">@color/md_theme_secondary</item>
+        <item name="colorOnSecondary">@color/md_theme_on_secondary</item>
+        <item name="colorSecondaryContainer">@color/md_theme_secondary_container</item>
+        <item name="colorOnSecondaryContainer">@color/md_theme_on_secondary_container</item>
+        <item name="android:colorBackground">?attr/colorSurface</item>
+        <item name="android:windowLightStatusBar">?attr/isLightTheme</item>
+        <item name="toolbarStyle">@style/Widget.Material3.Toolbar.Surface</item>
+        <item name="alertDialogTheme">@style/ThemeOverlay.Fcitx.PreferenceDialog</item>
+        <item name="preferenceTheme">@style/PreferenceThemeOverlay.Fcitx</item>
         <item name="colorLogFatal">@color/red_A700</item>
         <item name="colorLogError">@color/red_400</item>
         <item name="colorLogWarning">@color/yellow_800</item>
@@ -10,9 +23,44 @@
         <item name="colorLogVerbose">@color/grey_700</item>
     </style>
 
-    <style name="Theme.InputViewTheme" parent="@android:style/Theme.DeviceDefault.Settings" />
+    <style name="Theme.FcitxAppTheme" parent="Base.FcitxAppTheme" />
 
-    <style name="Theme.DialogTheme" parent="@android:style/Theme.DeviceDefault.Light.Dialog" />
+    <style name="ThemeOverlay.Fcitx.PreferenceDialog" parent="ThemeOverlay.Material3.MaterialAlertDialog">
+        <item name="android:windowBackground">@drawable/md3_dialog_background</item>
+    </style>
 
-    <style name="InputViewSnackbarTheme" parent="Theme.MaterialComponents.Light.NoActionBar" />
+    <style name="PreferenceThemeOverlay.Fcitx" parent="PreferenceThemeOverlay">
+        <item name="preferenceStyle">@style/Preference.Fcitx</item>
+        <item name="switchPreferenceCompatStyle">@style/Preference.Fcitx.Switch</item>
+        <item name="preferenceCategoryTitleTextAppearance">@style/TextAppearance.Material3.TitleSmall</item>
+    </style>
+
+    <style name="Preference.Fcitx" parent="Preference.Material">
+        <item name="android:minHeight">72dp</item>
+        <item name="allowDividerAbove">false</item>
+        <item name="allowDividerBelow">false</item>
+    </style>
+
+    <style name="Preference.Fcitx.Switch" parent="Preference.SwitchPreferenceCompat.Material">
+        <item name="android:minHeight">72dp</item>
+        <item name="allowDividerAbove">false</item>
+        <item name="allowDividerBelow">false</item>
+    </style>
+
+    <!-- Keyboard views keep their explicit Theme palette; this supplies widget attributes. -->
+    <style name="Theme.InputViewTheme" parent="Base.FcitxAppTheme" />
+
+    <!-- IME dialogs resolve system day/night and dynamic colors independently of keyboard themes. -->
+    <style name="Theme.InputMethodDialog" parent="Base.FcitxAppTheme">
+        <item name="alertDialogTheme">@style/ThemeOverlay.Material3.Dialog.Alert</item>
+        <item name="materialAlertDialogTheme">@style/ThemeOverlay.Material3.MaterialAlertDialog</item>
+    </style>
+
+    <style name="Theme.DialogTheme" parent="Theme.Material3.DayNight.Dialog">
+        <item name="android:windowMinWidthMajor">90%</item>
+        <item name="android:windowMinWidthMinor">90%</item>
+        <item name="android:windowBackground">@drawable/md3_dialog_background</item>
+    </style>
+
+    <style name="InputViewSnackbarTheme" parent="Theme.Material3.DayNight.NoActionBar" />
 </resources>

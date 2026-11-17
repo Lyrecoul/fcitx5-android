@@ -4,13 +4,13 @@
  */
 package org.fcitx.fcitx5.android.ui.main
 
-import android.app.Activity
 import android.content.ClipData
 import android.content.Intent
 import android.os.Bundle
 import android.view.Gravity
 import android.view.inputmethod.InputMethodManager
 import android.widget.EditText
+import androidx.appcompat.app.AppCompatActivity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.cancel
@@ -22,7 +22,7 @@ import org.fcitx.fcitx5.android.utils.clipboardManager
 import org.fcitx.fcitx5.android.utils.inputMethodManager
 import org.fcitx.fcitx5.android.utils.str
 
-class ClipboardEditActivity : Activity() {
+class ClipboardEditActivity : AppCompatActivity() {
 
     private val scope: CoroutineScope = MainScope()
 

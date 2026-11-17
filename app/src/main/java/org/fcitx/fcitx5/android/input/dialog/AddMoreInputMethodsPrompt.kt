@@ -4,14 +4,15 @@
  */
 package org.fcitx.fcitx5.android.input.dialog
 
-import android.app.AlertDialog
 import android.content.Context
+import androidx.appcompat.app.AlertDialog
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import org.fcitx.fcitx5.android.R
 import org.fcitx.fcitx5.android.utils.AppUtil
 
 object AddMoreInputMethodsPrompt {
     fun build(context: Context): AlertDialog {
-        return AlertDialog.Builder(context)
+        return MaterialAlertDialogBuilder(context.inputMethodDialogContext())
             .setTitle(R.string.no_more_input_methods)
             .setMessage(R.string.add_more_input_methods)
             .setPositiveButton(R.string.add) { _, _ ->

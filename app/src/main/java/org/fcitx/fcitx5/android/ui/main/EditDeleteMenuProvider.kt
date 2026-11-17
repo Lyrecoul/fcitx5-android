@@ -25,7 +25,7 @@ class EditDeleteMenuProvider<T>(
     lifecycleOwner: LifecycleOwner,
 ) : MenuProvider where T : MenuHost, T : Context {
 
-    private val tint = menuHost.styledColor(android.R.attr.colorControlNormal)
+    private val tint = menuHost.styledColor(com.google.android.material.R.attr.colorOnSurfaceVariant)
 
     init {
         buttonMode.observe(lifecycleOwner) { menuHost.invalidateMenu() }

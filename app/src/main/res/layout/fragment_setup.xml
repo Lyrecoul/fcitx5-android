@@ -16,18 +16,18 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
 
-    <TextView
+    <com.google.android.material.textview.MaterialTextView
         android:id="@+id/hint_text"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginHorizontal="24dp"
         android:gravity="center"
-        android:textSize="16sp"
+        android:textAppearance="?attr/textAppearanceTitleLarge"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         tools:text="Hint text here ..." />
 
-    <Button
+    <com.google.android.material.button.MaterialButton
         android:id="@+id/action_button"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -44,20 +44,19 @@
         android:layout_marginTop="36dp"
         android:layout_marginEnd="8dp"
         android:src="@drawable/ic_baseline_check_circle_24"
-        android:tint="?android:attr/colorAccent"
+        app:tint="?attr/colorPrimary"
         app:layout_constraintEnd_toStartOf="@id/done_text"
         app:layout_constraintHorizontal_chainStyle="packed"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/hint_text" />
 
-    <TextView
+    <com.google.android.material.textview.MaterialTextView
         android:id="@+id/done_text"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="@string/done"
-        android:textColor="?android:attr/colorAccent"
-        android:textSize="20sp"
-        android:textStyle="bold"
+        android:textColor="?attr/colorPrimary"
+        android:textAppearance="?attr/textAppearanceTitleMedium"
         app:layout_constraintBottom_toBottomOf="@id/done_icon"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toEndOf="@id/done_icon"

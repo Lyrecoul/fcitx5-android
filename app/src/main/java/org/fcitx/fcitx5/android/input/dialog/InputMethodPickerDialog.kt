@@ -4,17 +4,18 @@
  */
 package org.fcitx.fcitx5.android.input.dialog
 
-import android.app.AlertDialog
 import android.content.Context
 import android.view.ViewGroup
+import androidx.appcompat.app.AlertDialog
 import androidx.lifecycle.lifecycleScope
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.launch
 import org.fcitx.fcitx5.android.R
 import org.fcitx.fcitx5.android.core.FcitxAPI
 import org.fcitx.fcitx5.android.input.FcitxInputMethodService
 import org.fcitx.fcitx5.android.utils.AppUtil
 import splitties.dimensions.dp
-import splitties.resources.styledDrawable
+import splitties.resources.drawable
 import splitties.views.dsl.core.matchParent
 import splitties.views.dsl.core.wrapContent
 import splitties.views.dsl.recyclerview.recyclerView
@@ -32,14 +33,12 @@ object InputMethodPickerDialog {
         val enabledIndex = entries.indexOfFirst { it.uniqueName == enabledIM }
         val dividerIndex = entries.indexOfFirst { it.ime }
         lateinit var dialog: AlertDialog
-        dialog = AlertDialog.Builder(context)
+        val builder = MaterialAlertDialogBuilder(context.inputMethodDialogContext())
+        dialog = builder
             .setTitle(R.string.choose_input_method)
-            .setView(context.recyclerView {
+            .setView(builder.context.recyclerView {
                 layoutParams = ViewGroup.LayoutParams(matchParent, wrapContent)
-                // add some padding because AlertDialog's `titleDividerNoCustom` won't show up...
-                // but why?
-                // https://android.googlesource.com/platform/frameworks/base.git/+/refs/tags/android-11.0.0_r48/core/res/res/layout/alert_dialog_title_material.xml#58
-                topPadding = dp(8) // android.R.dimen.dialog_title_divider_material
+                topPadding = dp(8)
                 layoutManager = verticalLayoutManager()
                 adapter = InputMethodListAdapter(entries, enabledIndex) {
                     val (uniqueName, _, ime) = it
@@ -47,7 +46,7 @@ object InputMethodPickerDialog {
                     else service.lifecycleScope.launch { fcitx.activateIme(uniqueName) }
                     dialog.dismiss()
                 }
-                styledDrawable(android.R.attr.dividerHorizontal)?.let {
+                drawable(R.drawable.input_method_divider)?.let {
                     addItemDecoration(SingleDividerDecoration(it, dividerIndex))
                 }
             })

@@ -24,7 +24,7 @@
         <activity
             android:name=".AboutActivity"
             android:exported="true"
-            android:theme="@style/DeviceSettingsTheme">
+            android:theme="@style/Theme.FcitxPluginAbout">
             <intent-filter>
                 <action android:name="org.fcitx.fcitx5.android.plugin.MANIFEST" />
             </intent-filter>

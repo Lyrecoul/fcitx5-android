@@ -4,12 +4,12 @@
  */
 package org.fcitx.fcitx5.android.ui.main.settings
 
-import android.app.AlertDialog
 import android.os.Bundle
 import android.view.View
 import android.view.inputmethod.EditorInfo
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -80,7 +80,7 @@ class QuickPhraseEditFragment : ProgressFragment(), OnItemChangedListener<QuickP
                     add(keywordLayout, lParams(matchParent))
                     add(phraseLayout, lParams(matchParent))
                 }
-                AlertDialog.Builder(context)
+                MaterialAlertDialogBuilder(ctx)
                     .setTitle(title)
                     .setView(layout)
                     .setPositiveButton(android.R.string.ok, null)

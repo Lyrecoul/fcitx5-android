@@ -7,20 +7,20 @@ package org.fcitx.fcitx5.android.ui.main.settings
 import android.content.Context
 import android.content.res.TypedArray
 import android.util.AttributeSet
-import androidx.appcompat.app.AlertDialog
 import androidx.preference.DialogPreference
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.android.material.slider.Slider
 import org.fcitx.fcitx5.android.R
-import org.fcitx.fcitx5.android.utils.setOnChangeListener
 import splitties.dimensions.dp
 import splitties.resources.resolveThemeAttribute
 import splitties.views.dsl.core.add
 import splitties.views.dsl.core.horizontalMargin
 import splitties.views.dsl.core.lParams
 import splitties.views.dsl.core.matchParent
-import splitties.views.dsl.core.seekBar
 import splitties.views.dsl.core.textView
 import splitties.views.dsl.core.verticalLayout
 import splitties.views.dsl.core.verticalMargin
+import splitties.views.dsl.core.view
 import splitties.views.gravityHorizontalCenter
 import splitties.views.textAppearance
 
@@ -29,8 +29,8 @@ import splitties.views.textAppearance
  * value can be changed by clicking on the preference, which brings up a dialog which a seek bar.
  * This implementation also allows for a min / max step value, while being backwards compatible.
  *
- * @property min The minimum value of the seek bar. Must not be greater or equal than [max].
- * @property max The maximum value of the seek bar. Must not be lesser or equal than [min].
+ * @property min The minimum value of the slider. Must not be greater than [max].
+ * @property max The maximum value of the slider. Must not be less than [min].
  * @property step The step in which the seek bar increases per move. If the provided value is less
  *  than 1, 1 will be used as step.
  * @property unit The unit to show after the value. Set to an empty string to disable this feature.
@@ -97,11 +97,17 @@ class DialogSeekBarPreference @JvmOverloads constructor(
             text = textForValue(value)
             textAppearance = context.resolveThemeAttribute(android.R.attr.textAppearanceListItem)
         }
-        val seekBar = context.seekBar {
-            max = progressForValue(this@DialogSeekBarPreference.max)
-            progress = progressForValue(value)
-            setOnChangeListener {
-                textView.text = textForValue(valueForProgress(it))
+        val maxProgress = progressForValue(max).coerceAtLeast(0)
+        val slider = context.view(::Slider) {
+            valueFrom = 0f
+            // Material requires a non-empty range, even when there is only one valid value.
+            valueTo = maxProgress.coerceAtLeast(1).toFloat()
+            stepSize = 1f
+            this.value = progressForValue(this@DialogSeekBarPreference.value)
+                .coerceIn(0, maxProgress).toFloat()
+            isEnabled = maxProgress > 0
+            addOnChangeListener { _, progress, _ ->
+                textView.text = textForValue(valueForProgress(progress.toInt()))
             }
         }
         val dialogContent = context.verticalLayout {
@@ -116,17 +122,17 @@ class DialogSeekBarPreference @JvmOverloads constructor(
             add(textView, lParams {
                 verticalMargin = dp(24)
             })
-            add(seekBar, lParams {
+            add(slider, lParams {
                 width = matchParent
                 horizontalMargin = dp(10)
                 bottomMargin = dp(10)
             })
         }
-        AlertDialog.Builder(context)
+        MaterialAlertDialogBuilder(context)
             .setTitle(this@DialogSeekBarPreference.dialogTitle)
             .setView(dialogContent)
             .setPositiveButton(android.R.string.ok) { _, _ ->
-                val value = valueForProgress(seekBar.progress)
+                val value = valueForProgress(slider.value.toInt())
                 setValue(value)
             }
             .setNeutralButton(R.string.default_) { _, _ ->
@@ -144,8 +150,7 @@ class DialogSeekBarPreference @JvmOverloads constructor(
     }
 
     /**
-     * Converts the actual value to a progress value which the Android SeekBar implementation can
-     * handle. (Android's SeekBar step is fixed at 1 and min at 0)
+     * Converts the actual value to a discrete slider position with a fixed step of 1 and min of 0.
      *
      * @param value The actual value.
      * @return the internal value which is used to allow different min and step values.
@@ -153,9 +158,9 @@ class DialogSeekBarPreference @JvmOverloads constructor(
     private fun progressForValue(value: Int) = (value - min) / step
 
     /**
-     * Converts the Android SeekBar value to the actual value.
+     * Converts the discrete slider position to the actual value.
      *
-     * @param progress The progress value of the SeekBar.
+     * @param progress The progress value of the slider.
      * @return the actual value which is ready to use.
      */
     private fun valueForProgress(progress: Int) = (progress * step) + min

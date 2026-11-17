@@ -1,5 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <style name="DeviceSettingsTheme" parent="@android:style/Theme.DeviceDefault.Settings" />
+    <style name="Theme.FcitxPluginAbout" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="android:colorBackground">?attr/colorSurface</item>
+        <item name="toolbarStyle">@style/Widget.Material3.Toolbar.Surface</item>
+        <item name="preferenceTheme">@style/PreferenceThemeOverlay.FcitxPlugin</item>
+    </style>
+
+    <style name="PreferenceThemeOverlay.FcitxPlugin" parent="PreferenceThemeOverlay">
+        <item name="preferenceStyle">@style/Preference.FcitxPlugin</item>
+        <item name="preferenceCategoryTitleTextAppearance">@style/TextAppearance.Material3.TitleSmall</item>
+    </style>
+
+    <style name="Preference.FcitxPlugin" parent="Preference.Material">
+        <item name="android:minHeight">72dp</item>
+        <item name="allowDividerAbove">false</item>
+        <item name="allowDividerBelow">false</item>
+    </style>
 </resources>

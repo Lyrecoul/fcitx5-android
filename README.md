@@ -57,6 +57,7 @@ In case you want Fcitx5 on other platforms: [macOS](https://github.com/fcitx-con
 - Floating candidates panel when using physical keyboard
 - Candidate and non-rounded preedit text use short opacity-only transitions (120 ms in, 80 ms out); ongoing typing updates immediately without sliding or scaling.
 - Compact floating keyboard in landscape, with configurable size and left/right placement.
+- Material Design 3 settings, setup and plugin About UI, including switches, sliders, text fields, shortcut modifier chips, clipboard editing and in-keyboard input-method dialogs. App colors follow system light/dark mode and use dynamic color on supported Android 12+ devices; older versions use the built-in palette. Keyboard themes remain independently configurable.
 
 ### Planned Features
 

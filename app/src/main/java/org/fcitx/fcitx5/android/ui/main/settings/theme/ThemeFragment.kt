@@ -93,8 +93,7 @@ class ThemeFragment : Fragment() {
                 centerHorizontally()
                 bottomOfParent()
             })
-            backgroundColor = styledColor(android.R.attr.colorPrimary)
-            elevation = dp(4f)
+            backgroundColor = styledColor(com.google.android.material.R.attr.colorSurface)
         }
 
         constraintLayout {

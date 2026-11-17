@@ -4,11 +4,11 @@
  */
 package org.fcitx.fcitx5.android.ui.main
 
-import android.app.AlertDialog
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import androidx.lifecycle.lifecycleScope
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.mikepenz.aboutlibraries.Libs
 import com.mikepenz.aboutlibraries.entity.License
 import kotlinx.coroutines.launch
@@ -50,7 +50,7 @@ class LicensesFragment : PaddingPreferenceFragment() {
             else -> {
                 val licenseArray = licenses.toTypedArray()
                 val licenseNames = licenseArray.map { it.spdxId ?: it.name }.toTypedArray()
-                AlertDialog.Builder(context)
+                MaterialAlertDialogBuilder(requireContext())
                     .setTitle(uniqueId)
                     .setItems(licenseNames) { _, idx ->
                         showLicenseContent(licenseArray[idx])

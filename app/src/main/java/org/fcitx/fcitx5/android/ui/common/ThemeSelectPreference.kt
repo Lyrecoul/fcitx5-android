@@ -5,8 +5,8 @@
 package org.fcitx.fcitx5.android.ui.common
 
 import android.content.Context
-import androidx.appcompat.app.AlertDialog
 import androidx.preference.Preference
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import org.fcitx.fcitx5.android.data.theme.Theme
 import org.fcitx.fcitx5.android.data.theme.ThemeManager
 import org.fcitx.fcitx5.android.ui.main.settings.theme.ResponsiveThemeListView
@@ -32,7 +32,7 @@ class ThemeSelectPreference(context: Context, private val defaultTheme: Theme) :
             selected = allThemes.indexOfFirst { it.name == currentThemeName }
         }
         view.adapter = adapter
-        AlertDialog.Builder(context)
+        MaterialAlertDialogBuilder(context)
             .setTitle(title)
             .setPositiveButton(android.R.string.ok) { _, _ ->
                 adapter.selectedTheme?.let {

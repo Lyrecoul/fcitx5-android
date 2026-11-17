@@ -8,19 +8,20 @@ import android.content.Context
 import android.view.KeyEvent
 import android.view.inputmethod.EditorInfo
 import androidx.core.widget.addTextChangedListener
+import com.google.android.material.chip.Chip
+import com.google.android.material.chip.ChipGroup
 import org.fcitx.fcitx5.android.R
 import org.fcitx.fcitx5.android.core.Key
 import org.fcitx.fcitx5.android.core.KeyState
 import org.fcitx.fcitx5.android.core.KeyStates
 import org.fcitx.fcitx5.android.core.KeySym
 import org.fcitx.fcitx5.android.input.FcitxInputMethodService
+import org.fcitx.fcitx5.android.utils.materialTextInput
 import splitties.dimensions.dp
 import splitties.resources.drawable
 import splitties.resources.styledColor
-import splitties.resources.styledColorSL
 import splitties.resources.styledDrawable
 import splitties.views.dsl.constraintlayout.above
-import splitties.views.dsl.constraintlayout.after
 import splitties.views.dsl.constraintlayout.before
 import splitties.views.dsl.constraintlayout.below
 import splitties.views.dsl.constraintlayout.bottomOfParent
@@ -32,10 +33,9 @@ import splitties.views.dsl.constraintlayout.startOfParent
 import splitties.views.dsl.constraintlayout.topOfParent
 import splitties.views.dsl.core.Ui
 import splitties.views.dsl.core.add
-import splitties.views.dsl.core.button
-import splitties.views.dsl.core.editText
 import splitties.views.dsl.core.imageButton
 import splitties.views.dsl.core.textView
+import splitties.views.dsl.core.view
 import splitties.views.dsl.core.wrapContent
 import splitties.views.gravityCenter
 import splitties.views.imageDrawable
@@ -49,34 +49,19 @@ class KeyPreferenceUi(override val ctx: Context) : Ui {
     private inner class ModifierButton(label: String, val modifier: KeyState) : Ui {
         override val ctx = this@KeyPreferenceUi.ctx
 
-        override val root = button {
+        override val root = view(::Chip) {
             text = label
-            isAllCaps = false
-            // those 2 are both necessary, don't ask me why ´_>`
-            minWidth = 0
-            minimumWidth = 0
+            isCheckable = true
             setOnClickListener {
-                checked = !checked
                 setKey(Key.create(keySym, keyStates))
             }
         }
 
-        var checked: Boolean = false
+        var checked: Boolean
+            get() = root.isChecked
             set(value) {
-                field = value
-                applyStyles()
+                root.isChecked = value
             }
-
-        fun applyStyles() = root.apply {
-            backgroundTintList = ctx.styledColorSL(
-                if (checked) android.R.attr.colorAccent else android.R.attr.colorBackgroundFloating
-            )
-            setTextColor(
-                ctx.styledColor(
-                    if (checked) android.R.attr.colorForegroundInverse else android.R.attr.colorForeground
-                )
-            )
-        }
     }
 
     private val modifierButtons = arrayOf(
@@ -85,35 +70,42 @@ class KeyPreferenceUi(override val ctx: Context) : Ui {
         ModifierButton("Shift", KeyState.Shift)
     )
 
-    private val input = editText {
-        textSize = 16f // sp
-        inputType = EditorInfo.TYPE_CLASS_TEXT or EditorInfo.TYPE_TEXT_FLAG_NO_SUGGESTIONS
-        imeOptions = EditorInfo.IME_FLAG_FORCE_ASCII
-        privateImeOptions = FcitxInputMethodService.DeleteSurroundingFlag
-        requestFocus()
-        setOnKeyListener l@{ _, _, event ->
-            if (event.action != KeyEvent.ACTION_DOWN) return@l false
-            val states = KeyStates.fromKeyEvent(event)
-            var sym = KeySym.fromKeyEvent(event) ?: return@l false
-            // convert lowercase latin to uppercase to make it look better
-            if (sym.sym in 0x61..0x7a) {
-                sym = KeySym(sym.sym - 0x20)
-            }
-            setKey(Key.create(sym, states))
-            return@l true
-        }
-        addTextChangedListener l@{
-            val text = it?.toString() ?: return@l
-            val input = Key.parse(text)
-            setKey(Key.create(input.keySym, keyStates))
-        }
+    private val modifierGroup = view(::ChipGroup) {
+        modifierButtons.forEach { addView(it.root) }
     }
+
+    private val inputLayout = materialTextInput { input ->
+        input.apply {
+            isSingleLine = true
+            inputType = EditorInfo.TYPE_CLASS_TEXT or EditorInfo.TYPE_TEXT_FLAG_NO_SUGGESTIONS
+            imeOptions = EditorInfo.IME_FLAG_FORCE_ASCII
+            privateImeOptions = FcitxInputMethodService.DeleteSurroundingFlag
+            requestFocus()
+            setOnKeyListener l@{ _, _, event ->
+                if (event.action != KeyEvent.ACTION_DOWN) return@l false
+                val states = KeyStates.fromKeyEvent(event)
+                var sym = KeySym.fromKeyEvent(event) ?: return@l false
+                // Convert lowercase Latin to uppercase for display.
+                if (sym.sym in 0x61..0x7a) {
+                    sym = KeySym(sym.sym - 0x20)
+                }
+                setKey(Key.create(sym, states))
+                return@l true
+            }
+            addTextChangedListener l@{
+                val text = it?.toString() ?: return@l
+                val key = Key.parse(text)
+                setKey(Key.create(key.keySym, keyStates))
+            }
+        }
+    }.first
 
     private val clearButton = imageButton {
         background = styledDrawable(android.R.attr.actionBarItemBackground)
         imageDrawable = drawable(R.drawable.ic_baseline_delete_24)!!.apply {
-            setTint(styledColor(android.R.attr.colorControlNormal))
+            setTint(styledColor(com.google.android.material.R.attr.colorOnSurfaceVariant))
         }
+        contentDescription = ctx.getString(R.string.clear)
         setOnClickListener {
             setKey(Key.None)
         }
@@ -126,7 +118,7 @@ class KeyPreferenceUi(override val ctx: Context) : Ui {
             topOfParent(vMargin)
             startOfParent(hMargin)
             before(clearButton)
-            above(modifierButtons.first().root)
+            above(modifierGroup)
         })
         val iconSize = dp(48)
         add(clearButton, lParams(iconSize, iconSize) {
@@ -134,16 +126,14 @@ class KeyPreferenceUi(override val ctx: Context) : Ui {
             above(textView)
             endOfParent(hMargin)
         })
-        modifierButtons.forEachIndexed { i, btn ->
-            add(btn.root, lParams(matchConstraints, wrapContent) {
-                below(textView, vMargin)
-                if (i == 0) startOfParent(hMargin) else after(modifierButtons[i - 1].root)
-                bottomOfParent(vMargin)
-            })
-        }
-        add(input, lParams(matchConstraints, wrapContent) {
+        add(modifierGroup, lParams(matchConstraints, wrapContent) {
             below(textView, vMargin)
-            after(modifierButtons.last().root)
+            startOfParent(hMargin)
+            endOfParent(hMargin)
+        })
+        add(inputLayout, lParams(matchConstraints, wrapContent) {
+            below(modifierGroup, dp(8))
+            startOfParent(hMargin)
             endOfParent(hMargin)
             bottomOfParent(vMargin)
         })
@@ -157,7 +147,7 @@ class KeyPreferenceUi(override val ctx: Context) : Ui {
             it.checked = key.keyStates.has(it.modifier)
         }
         val symText = key.localizedString.substringAfterLast('+')
-        input.hint = if (ModifierRegex.containsMatchIn(symText)) "" else symText
+        inputLayout.hint = if (ModifierRegex.containsMatchIn(symText)) "" else symText
     }
 
     private val keyStates

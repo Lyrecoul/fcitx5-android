@@ -4,32 +4,36 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content">
 
-    <EditText
-        android:id="@+id/clipboard_edit_text"
-        android:layout_width="match_parent"
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/clipboard_edit_input"
+        style="?attr/textInputOutlinedStyle"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginStart="20dp"
-        android:layout_marginLeft="20dp"
-        android:layout_marginEnd="20dp"
-        android:layout_marginRight="20dp"
-        android:gravity="top|start"
+        android:layout_margin="24dp"
         android:hint="@string/clipboard_edit_text_hint"
-        android:importantForAutofill="no"
-        android:inputType="textMultiLine"
-        android:maxLines="8"
-        android:minLines="4"
-        android:scrollbars="vertical"
         app:layout_constraintBottom_toTopOf="@id/clipboard_edit_cancel"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
 
-        <requestFocus />
-    </EditText>
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/clipboard_edit_text"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="top|start"
+            android:importantForAutofill="no"
+            android:inputType="textMultiLine"
+            android:maxLines="8"
+            android:minLines="4"
+            android:scrollbars="vertical">
 
-    <Button
+            <requestFocus />
+        </com.google.android.material.textfield.TextInputEditText>
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <com.google.android.material.button.MaterialButton
         android:id="@+id/clipboard_edit_copy"
-        style="?android:attr/buttonBarNeutralButtonStyle"
+        style="@style/Widget.Material3.Button.TextButton.Dialog"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="12dp"
@@ -39,9 +43,9 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
 
-    <Button
+    <com.google.android.material.button.MaterialButton
         android:id="@+id/clipboard_edit_cancel"
-        style="?android:attr/buttonBarNegativeButtonStyle"
+        style="@style/Widget.Material3.Button.TextButton.Dialog"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
@@ -50,9 +54,9 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toStartOf="@id/clipboard_edit_ok" />
 
-    <Button
+    <com.google.android.material.button.MaterialButton
         android:id="@+id/clipboard_edit_ok"
-        style="?android:attr/buttonBarPositiveButtonStyle"
+        style="@style/Widget.Material3.Button.TextButton.Dialog"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"

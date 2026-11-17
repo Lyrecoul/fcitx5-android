@@ -7,6 +7,7 @@ package org.fcitx.fcitx5.android.ui.common
 import android.content.Context
 import android.view.View
 import android.view.ViewGroup
+import com.google.android.material.checkbox.MaterialCheckBox
 import org.fcitx.fcitx5.android.R
 import splitties.dimensions.dp
 import splitties.resources.drawable
@@ -25,11 +26,11 @@ import splitties.views.dsl.constraintlayout.matchConstraints
 import splitties.views.dsl.constraintlayout.startOfParent
 import splitties.views.dsl.core.Ui
 import splitties.views.dsl.core.add
-import splitties.views.dsl.core.checkBox
 import splitties.views.dsl.core.imageButton
 import splitties.views.dsl.core.imageView
 import splitties.views.dsl.core.matchParent
 import splitties.views.dsl.core.textView
+import splitties.views.dsl.core.view
 import splitties.views.dsl.core.wrapContent
 import splitties.views.imageDrawable
 import splitties.views.setPaddingDp
@@ -44,9 +45,9 @@ class DynamicListEntryUi(override val ctx: Context) : Ui {
         setPaddingDp(3, 0, 3, 0)
     }
 
-    val multiselectCheckBox = checkBox()
+    val multiselectCheckBox = view(::MaterialCheckBox)
 
-    val checkBox = checkBox()
+    val checkBox = view(::MaterialCheckBox)
 
     val nameText = textView {
         setPaddingDp(0, 16, 0, 16)
@@ -56,14 +57,14 @@ class DynamicListEntryUi(override val ctx: Context) : Ui {
     val editButton = imageButton {
         background = styledDrawable(android.R.attr.selectableItemBackground)
         imageDrawable = drawable(R.drawable.ic_baseline_edit_24)!!.apply {
-            setTint(styledColor(android.R.attr.colorControlNormal))
+            setTint(styledColor(com.google.android.material.R.attr.colorOnSurfaceVariant))
         }
     }
 
     val settingsButton = imageButton {
         background = styledDrawable(android.R.attr.selectableItemBackground)
         imageDrawable = drawable(R.drawable.ic_baseline_settings_24)!!.apply {
-            setTint(styledColor(android.R.attr.colorControlNormal))
+            setTint(styledColor(com.google.android.material.R.attr.colorOnSurfaceVariant))
         }
     }
 

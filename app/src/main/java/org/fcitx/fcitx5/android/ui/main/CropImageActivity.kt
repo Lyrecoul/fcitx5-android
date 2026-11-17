@@ -28,6 +28,7 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updateLayoutParams
 import com.canhub.cropper.CropImageOptions
 import com.canhub.cropper.CropImageView
+import com.google.android.material.appbar.MaterialToolbar
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 import org.fcitx.fcitx5.android.R
@@ -150,9 +151,8 @@ class CropImageActivity : AppCompatActivity() {
     }
 
     private fun setupRootView() {
-        toolbar = view(::Toolbar) {
-            backgroundColor = styledColor(android.R.attr.colorPrimary)
-            elevation = dp(4f)
+        toolbar = view(::MaterialToolbar) {
+            backgroundColor = styledColor(com.google.android.material.R.attr.colorSurface)
             navigationIcon = DrawerArrowDrawable(context).apply { progress = 1f }
             setupToolbarMenu(menu)
         }
@@ -182,7 +182,7 @@ class CropImageActivity : AppCompatActivity() {
     }
 
     private fun setupToolbarMenu(menu: Menu) {
-        val iconTint = styledColor(android.R.attr.colorControlNormal)
+        val iconTint = styledColor(com.google.android.material.R.attr.colorOnSurfaceVariant)
         menu.item(R.string.rotate, R.drawable.ic_baseline_rotate_right_24, iconTint, true) {
             cropView.rotateImage(90)
         }

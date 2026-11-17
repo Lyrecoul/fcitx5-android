@@ -12,6 +12,8 @@ import android.provider.Settings
 import androidx.annotation.StringRes
 import androidx.appcompat.app.AlertDialog
 import androidx.lifecycle.LifecycleCoroutineScope
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.android.material.progressindicator.LinearProgressIndicator
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -23,16 +25,15 @@ import splitties.views.dsl.core.add
 import splitties.views.dsl.core.horizontalMargin
 import splitties.views.dsl.core.lParams
 import splitties.views.dsl.core.matchParent
-import splitties.views.dsl.core.styles.AndroidStyles
 import splitties.views.dsl.core.textView
 import splitties.views.dsl.core.verticalLayout
 import splitties.views.dsl.core.verticalMargin
+import splitties.views.dsl.core.view
 import splitties.views.textAppearance
 
 @Suppress("FunctionName")
 fun Context.ProgressBarDialogIndeterminate(@StringRes title: Int): AlertDialog.Builder {
-    val androidStyles = AndroidStyles(this)
-    return AlertDialog.Builder(this)
+    return MaterialAlertDialogBuilder(this)
         .setTitle(title)
         .setView(verticalLayout {
             val shouldAnimate = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -41,7 +42,7 @@ fun Context.ProgressBarDialogIndeterminate(@StringRes title: Int): AlertDialog.B
                 getGlobalSettings<Float>(Settings.Global.ANIMATOR_DURATION_SCALE) > 0f
             }
             add(if (shouldAnimate) {
-                androidStyles.progressBar.horizontal {
+                view(::LinearProgressIndicator) {
                     isIndeterminate = true
                 }
             } else {

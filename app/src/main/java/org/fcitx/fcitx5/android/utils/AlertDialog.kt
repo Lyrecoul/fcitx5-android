@@ -5,8 +5,8 @@
 
 package org.fcitx.fcitx5.android.utils
 
-import android.app.AlertDialog
 import android.widget.Button
+import androidx.appcompat.app.AlertDialog
 
 val AlertDialog.positiveButton: Button
     get() = getButton(AlertDialog.BUTTON_POSITIVE)
