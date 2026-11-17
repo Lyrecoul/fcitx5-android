@@ -116,6 +116,10 @@ retargets the pending batch instead of queuing old preedit. Setting the enhanced
 corner radius to zero, or disabling the enhancement, restores the original
 preedit styling.
 
+The preedit is a noninteractive overlay: its appearance, wrapping and resize
+animation do not change the application's resize/pan insets or consume touches
+above the keyboard. Both application insets follow the keyboard itself.
+
 Android 12 and later use system background blur confined to the keyboard.
 The background tint remains translucent when blur is unavailable, matching
 the module. The settings preview shows tint, reflections and corners; actual

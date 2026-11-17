@@ -714,13 +714,10 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
             inputView?.keyboardView?.getLocationInWindow(inputViewLocation)
             outInsets.apply {
                 contentTopInsets = inputViewLocation[1]
-                val preedit = inputView?.visiblePreedit
-                visibleTopInsets = if (preedit != null) {
-                    preedit.getLocationInWindow(inputViewLocation)
-                    minOf(contentTopInsets, inputViewLocation[1])
-                } else contentTopInsets
-                // The noninteractive preedit must be visible without moving app content
-                // or intercepting touches in the transparent strip above the keyboard.
+                // visibleTopInsets also drives focus panning, not just resizing.
+                // Keep the animated, noninteractive preedit out of both app insets
+                // and the touchable area above the keyboard.
+                visibleTopInsets = contentTopInsets
                 if (inputView?.isCompactKeyboard == true) {
                     // A floating keyboard must not resize/pan the game or consume touches
                     // in the transparent space beside it. Coordinates are window-relative.

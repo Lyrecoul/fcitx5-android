@@ -255,9 +255,6 @@ class InputView(
 
     val keyboardView: View
 
-    internal val visiblePreedit: View?
-        get() = preedit.ui.root.takeIf { it.visibility == VISIBLE }
-
     init {
         // MUST call before any operation
         setupScope()
